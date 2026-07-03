@@ -14,6 +14,7 @@ import com.breakingthebot.quicknotes.ui.NoteSortOption
 import com.breakingthebot.quicknotes.ui.NotesScreenState
 import com.breakingthebot.quicknotes.util.NoteInputSanitizer
 import com.breakingthebot.quicknotes.util.NoteListFormatter
+import com.breakingthebot.quicknotes.util.NoteTagFormatter
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,7 +47,12 @@ class NotesViewModel(
                 notes = notes,
                 noteCollection = editor.noteCollection,
                 searchQuery = editor.searchQuery,
+                selectedTag = editor.selectedTag,
                 sortOption = editor.sortOption,
+            ),
+            availableTags = NoteListFormatter.availableTags(
+                notes = notes,
+                noteCollection = editor.noteCollection,
             ),
         )
     }.stateIn(
@@ -79,12 +85,30 @@ class NotesViewModel(
     }
 
     /**
+     * Updates the editor tag field.
+     *
+     * @param tagsInput New comma-separated tag input.
+     */
+    fun onTagsInputChanged(tagsInput: String) {
+        editorState.value = editorState.value.copy(currentTagsInput = tagsInput)
+    }
+
+    /**
      * Updates the search query used to filter the visible note list.
      *
      * @param query New search field value.
      */
     fun onSearchQueryChanged(query: String) {
         editorState.value = editorState.value.copy(searchQuery = query)
+    }
+
+    /**
+     * Updates the active tag filter.
+     *
+     * @param selectedTag New tag filter, or null to clear it.
+     */
+    fun onSelectedTagChanged(selectedTag: String?) {
+        editorState.value = editorState.value.copy(selectedTag = selectedTag)
     }
 
     /**
@@ -102,7 +126,10 @@ class NotesViewModel(
      * @param noteCollection New collection tab selection.
      */
     fun onNoteCollectionChanged(noteCollection: NoteCollection) {
-        editorState.value = editorState.value.copy(noteCollection = noteCollection)
+        editorState.value = editorState.value.copy(
+            noteCollection = noteCollection,
+            selectedTag = null,
+        )
     }
 
     /**
@@ -115,6 +142,7 @@ class NotesViewModel(
         editorState.value = editorState.value.copy(
             currentTitle = selectedNote.title,
             currentBody = selectedNote.body,
+            currentTagsInput = NoteTagFormatter.formatForEditor(selectedNote.tags),
             selectedNoteId = selectedNote.id,
             selectedNoteIsArchived = selectedNote.isArchived,
         )
@@ -127,6 +155,7 @@ class NotesViewModel(
         editorState.value = editorState.value.copy(
             currentTitle = "",
             currentBody = "",
+            currentTagsInput = "",
             selectedNoteId = null,
             selectedNoteIsArchived = false,
         )
@@ -138,6 +167,7 @@ class NotesViewModel(
     fun saveNote() {
         val sanitizedTitle = NoteInputSanitizer.sanitizeTitle(editorState.value.currentTitle)
         val sanitizedBody = NoteInputSanitizer.sanitizeBody(editorState.value.currentBody)
+        val parsedTags = NoteTagFormatter.parseInput(editorState.value.currentTagsInput)
 
         if (sanitizedTitle.isBlank() || sanitizedBody.isBlank()) {
             emitMessage("Add both a title and note details before saving.")
@@ -151,6 +181,7 @@ class NotesViewModel(
             body = sanitizedBody,
             updatedAt = System.currentTimeMillis(),
             isArchived = editorState.value.selectedNoteIsArchived,
+            tags = parsedTags,
         )
 
         viewModelScope.launch {

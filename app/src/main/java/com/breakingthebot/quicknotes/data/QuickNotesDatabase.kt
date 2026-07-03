@@ -9,6 +9,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.breakingthebot.quicknotes.model.Note
 
 private const val DATABASE_NAME = "quick_notes.db"
@@ -16,7 +17,8 @@ private const val DATABASE_NAME = "quick_notes.db"
 /**
  * Room database that stores notes locally on the device.
  */
-@Database(entities = [Note::class], version = 2, exportSchema = false)
+@Database(entities = [Note::class], version = 3, exportSchema = false)
+@TypeConverters(TagListConverter::class)
 abstract class QuickNotesDatabase : RoomDatabase() {
     /**
      * Returns the DAO used to query and mutate note records.
@@ -43,6 +45,7 @@ abstract class QuickNotesDatabase : RoomDatabase() {
                     DATABASE_NAME,
                 ).addMigrations(
                     DatabaseMigrations.migration1To2,
+                    DatabaseMigrations.migration2To3,
                 ).build().also { instance = it }
             }
         }

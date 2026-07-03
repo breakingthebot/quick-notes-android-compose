@@ -82,6 +82,20 @@ fun NoteListItem(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
             )
+            if (note.tags.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    note.tags.forEach { tag ->
+                        Text(
+                            text = "#$tag",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {

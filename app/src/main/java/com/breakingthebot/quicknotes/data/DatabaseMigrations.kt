@@ -28,4 +28,21 @@ object DatabaseMigrations {
                 )
             }
         }
+
+    /**
+     * Adds persisted note tags while preserving existing notes.
+     */
+    val migration2To3: Migration =
+        object : Migration(2, 3) {
+            /**
+             * Updates the schema from version 2 to version 3.
+             *
+             * @param database Raw SQLite database being migrated.
+             */
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT ''",
+                )
+            }
+        }
 }

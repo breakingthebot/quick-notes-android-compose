@@ -16,9 +16,9 @@ import org.junit.Test
  */
 class NoteListFormatterTest {
     private val notes = listOf(
-        Note(id = 1, title = "Shopping", body = "Buy apples", updatedAt = 300L),
-        Note(id = 2, title = "Ideas", body = "Android search flow", updatedAt = 100L, isArchived = true),
-        Note(id = 3, title = "Workout", body = "Morning run plan", updatedAt = 200L),
+        Note(id = 1, title = "Shopping", body = "Buy apples", updatedAt = 300L, tags = listOf("home")),
+        Note(id = 2, title = "Ideas", body = "Android search flow", updatedAt = 100L, isArchived = true, tags = listOf("ideas")),
+        Note(id = 3, title = "Workout", body = "Morning run plan", updatedAt = 200L, tags = listOf("health")),
     )
 
     /**
@@ -30,6 +30,7 @@ class NoteListFormatterTest {
             notes = notes,
             noteCollection = NoteCollection.ACTIVE,
             searchQuery = "",
+            selectedTag = null,
             sortOption = NoteSortOption.NEWEST,
         )
 
@@ -45,6 +46,7 @@ class NoteListFormatterTest {
             notes = notes,
             noteCollection = NoteCollection.ARCHIVED,
             searchQuery = "ANDROID",
+            selectedTag = null,
             sortOption = NoteSortOption.NEWEST,
         )
 
@@ -60,6 +62,7 @@ class NoteListFormatterTest {
             notes = notes,
             noteCollection = NoteCollection.ACTIVE,
             searchQuery = "",
+            selectedTag = null,
             sortOption = NoteSortOption.TITLE,
         )
 
@@ -75,9 +78,39 @@ class NoteListFormatterTest {
             notes = notes,
             noteCollection = NoteCollection.ARCHIVED,
             searchQuery = "",
+            selectedTag = null,
             sortOption = NoteSortOption.NEWEST,
         )
 
         assertEquals(listOf(2), formattedNotes.map { note -> note.id })
+    }
+
+    /**
+     * Confirms tag filters limit results to notes carrying the selected tag.
+     */
+    @Test
+    fun formatNotes_filtersBySelectedTag() {
+        val formattedNotes = NoteListFormatter.formatNotes(
+            notes = notes,
+            noteCollection = NoteCollection.ACTIVE,
+            searchQuery = "",
+            selectedTag = "health",
+            sortOption = NoteSortOption.NEWEST,
+        )
+
+        assertEquals(listOf(3), formattedNotes.map { note -> note.id })
+    }
+
+    /**
+     * Confirms available tags are collected from the selected collection only.
+     */
+    @Test
+    fun availableTags_returnsCollectionScopedTags() {
+        val availableTags = NoteListFormatter.availableTags(
+            notes = notes,
+            noteCollection = NoteCollection.ACTIVE,
+        )
+
+        assertEquals(listOf("health", "home"), availableTags)
     }
 }

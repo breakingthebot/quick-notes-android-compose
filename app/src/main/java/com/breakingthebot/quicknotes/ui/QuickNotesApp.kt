@@ -109,6 +109,7 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
                     state = screenState,
                     onTitleChange = viewModel::onTitleChanged,
                     onBodyChange = viewModel::onBodyChanged,
+                    onTagsInputChange = viewModel::onTagsInputChanged,
                     onSaveClick = viewModel::saveNote,
                     onClearClick = viewModel::clearEditor,
                 )
@@ -118,6 +119,7 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
                     state = screenState,
                     onNoteCollectionChanged = viewModel::onNoteCollectionChanged,
                     onSearchQueryChanged = viewModel::onSearchQueryChanged,
+                    onSelectedTagChanged = viewModel::onSelectedTagChanged,
                     onSortOptionChanged = viewModel::onSortOptionChanged,
                 )
             }
@@ -170,6 +172,7 @@ private fun ScreenSummary(state: NotesScreenState) {
  *
  * @param state Current UI state with search and sort values.
  * @param onSearchQueryChanged Callback for search text changes.
+ * @param onSelectedTagChanged Callback for tag filter changes.
  * @param onSortOptionChanged Callback for sort mode changes.
  */
 @Composable
@@ -177,6 +180,7 @@ private fun NoteListControls(
     state: NotesScreenState,
     onNoteCollectionChanged: (NoteCollection) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
+    onSelectedTagChanged: (String?) -> Unit,
     onSortOptionChanged: (NoteSortOption) -> Unit,
 ) {
     Card(
@@ -214,7 +218,7 @@ private fun NoteListControls(
             OutlinedTextField(
                 value = state.searchQuery,
                 onValueChange = onSearchQueryChanged,
-                label = { Text(text = "Search title or details") },
+                label = { Text(text = "Search title, details, or tags") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = 56.dp)
@@ -222,6 +226,32 @@ private fun NoteListControls(
                 singleLine = true,
             )
             Spacer(modifier = Modifier.height(12.dp))
+            if (state.availableTags.isNotEmpty()) {
+                Text(
+                    text = "Filter by tag",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = state.selectedTag == null,
+                        onClick = { onSelectedTagChanged(null) },
+                        label = { Text(text = "All tags") },
+                    )
+                    state.availableTags.forEach { tag ->
+                        FilterChip(
+                            selected = state.selectedTag == tag,
+                            onClick = { onSelectedTagChanged(tag) },
+                            label = { Text(text = "#$tag") },
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -244,6 +274,7 @@ private fun NoteListControls(
  * @param state Current UI state.
  * @param onTitleChange Callback for title changes.
  * @param onBodyChange Callback for body changes.
+ * @param onTagsInputChange Callback for tag changes.
  * @param onSaveClick Callback for saving the current note.
  * @param onClearClick Callback for clearing the editor.
  */
@@ -252,6 +283,7 @@ private fun NoteEditorCard(
     state: NotesScreenState,
     onTitleChange: (String) -> Unit,
     onBodyChange: (String) -> Unit,
+    onTagsInputChange: (String) -> Unit,
     onSaveClick: () -> Unit,
     onClearClick: () -> Unit,
 ) {
@@ -297,6 +329,17 @@ private fun NoteEditorCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(168.dp),
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = state.currentTagsInput,
+                onValueChange = onTagsInputChange,
+                label = { Text(text = "Tags") },
+                supportingText = { Text(text = "Use commas to separate tags, for example: work, ideas") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 56.dp),
+                singleLine = true,
             )
             Spacer(modifier = Modifier.height(12.dp))
             Row(
@@ -441,6 +484,8 @@ private fun summaryMessage(state: NotesScreenState): String {
     return when {
         state.noteCollection == NoteCollection.ARCHIVED && state.searchQuery.isBlank() ->
             "Review saved notes that are out of the main workflow but still available."
+        state.selectedTag != null ->
+            "Filtering the ${state.noteCollection.label.lowercase()} list by #${state.selectedTag}."
         state.noteCollection == NoteCollection.ARCHIVED ->
             "Search your archived notes without mixing them into the active list."
         state.searchQuery.isNotBlank() ->

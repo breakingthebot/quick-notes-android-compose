@@ -16,6 +16,7 @@ import androidx.room.PrimaryKey
  * @property body User-provided note body content.
  * @property updatedAt Epoch millis for the most recent edit.
  * @property isArchived Whether the note is hidden from the active list.
+ * @property tags Lightweight labels used for organization and filtering.
  */
 @Entity(tableName = "notes")
 data class Note(
@@ -24,4 +25,5 @@ data class Note(
     val body: String,
     val updatedAt: Long,
     val isArchived: Boolean = false,
+    val tags: List<String> = emptyList(),
 )

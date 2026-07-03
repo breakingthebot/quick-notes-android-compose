@@ -20,6 +20,7 @@ object NoteListFormatter {
      * @param notes Stored notes from the repository.
      * @param noteCollection Selected visible note collection.
      * @param searchQuery User-entered search query.
+     * @param selectedTag Active tag filter, if any.
      * @param sortOption Selected list ordering mode.
      * @return Notes ready for on-screen display.
      */
@@ -27,6 +28,7 @@ object NoteListFormatter {
         notes: List<Note>,
         noteCollection: NoteCollection,
         searchQuery: String,
+        selectedTag: String?,
         sortOption: NoteSortOption,
     ): List<Note> {
         val normalizedQuery = searchQuery.trim().lowercase(Locale.getDefault())
@@ -36,13 +38,19 @@ object NoteListFormatter {
                 NoteCollection.ARCHIVED -> note.isArchived
             }
         }
-
-        val filteredNotes = if (normalizedQuery.isBlank()) {
+        val tagFilteredNotes = if (selectedTag.isNullOrBlank()) {
             scopedNotes
         } else {
-            scopedNotes.filter { note ->
+            scopedNotes.filter { note -> selectedTag in note.tags }
+        }
+
+        val filteredNotes = if (normalizedQuery.isBlank()) {
+            tagFilteredNotes
+        } else {
+            tagFilteredNotes.filter { note ->
                 note.title.lowercase(Locale.getDefault()).contains(normalizedQuery) ||
-                    note.body.lowercase(Locale.getDefault()).contains(normalizedQuery)
+                    note.body.lowercase(Locale.getDefault()).contains(normalizedQuery) ||
+                    note.tags.any { tag -> tag.lowercase(Locale.getDefault()).contains(normalizedQuery) }
             }
         }
 
@@ -51,5 +59,29 @@ object NoteListFormatter {
             NoteSortOption.OLDEST -> filteredNotes.sortedBy { note -> note.updatedAt }
             NoteSortOption.TITLE -> filteredNotes.sortedBy { note -> note.title.lowercase(Locale.getDefault()) }
         }
+    }
+
+    /**
+     * Returns distinct tags available inside the selected collection.
+     *
+     * @param notes Stored notes from the repository.
+     * @param noteCollection Selected visible note collection.
+     * @return Alphabetical distinct tag list for filter chips.
+     */
+    fun availableTags(
+        notes: List<Note>,
+        noteCollection: NoteCollection,
+    ): List<String> {
+        return notes.asSequence()
+            .filter { note ->
+                when (noteCollection) {
+                    NoteCollection.ACTIVE -> !note.isArchived
+                    NoteCollection.ARCHIVED -> note.isArchived
+                }
+            }
+            .flatMap { note -> note.tags.asSequence() }
+            .distinct()
+            .sorted()
+            .toList()
     }
 }

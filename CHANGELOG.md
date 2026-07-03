@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-07-03
+- Added persisted note tags with comma-separated editor input and in-list tag display.
+- Added collection-scoped tag filter chips alongside existing search and sort controls.
+- Added a Room schema migration and type converter for stored tag lists.
+- Added unit tests for tag parsing, storage formatting, and tag-based list filtering.
+
 ## 0.4.1 - 2026-07-03
 - Reworked the main screen into a single scrollable list so saved notes remain reachable on smaller screens.
 - Added IME-aware padding so the layout behaves better while the keyboard is open.
