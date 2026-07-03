@@ -20,4 +20,6 @@ data class NotesScreenState(
     val currentTitle: String = "",
     val currentBody: String = "",
     val selectedNoteId: Int? = null,
+    val searchQuery: String = "",
+    val sortOption: NoteSortOption = NoteSortOption.NEWEST,
 )

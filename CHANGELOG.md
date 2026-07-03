@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 - 2026-07-03
+- Added note list search so users can match notes by title or body text.
+- Added sort controls for newest, oldest, and alphabetical title ordering.
+- Added unit tests for note list filtering and sorting behavior.
+- Updated documentation to reflect search and sort support.
+
 ## 0.1.0 - 2026-07-03
 - Scaffolded a Kotlin Android app using Jetpack Compose and Gradle Kotlin DSL.
 - Added a Room-backed note model, DAO, repository, and singleton database.

@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -32,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -79,12 +81,65 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
                 onClearClick = viewModel::clearEditor,
             )
             Spacer(modifier = Modifier.height(16.dp))
+            NoteListControls(
+                state = screenState,
+                onSearchQueryChanged = viewModel::onSearchQueryChanged,
+                onSortOptionChanged = viewModel::onSortOptionChanged,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
             Box(modifier = Modifier.weight(1f)) {
                 NotesList(
                     state = screenState,
                     onNoteClick = viewModel::selectNote,
                     onDeleteClick = viewModel::deleteNote,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Renders the note list search and sort controls.
+ *
+ * @param state Current UI state with search and sort values.
+ * @param onSearchQueryChanged Callback for search text changes.
+ * @param onSortOptionChanged Callback for sort mode changes.
+ */
+@Composable
+private fun NoteListControls(
+    state: NotesScreenState,
+    onSearchQueryChanged: (String) -> Unit,
+    onSortOptionChanged: (NoteSortOption) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Find notes",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = state.searchQuery,
+                onValueChange = onSearchQueryChanged,
+                label = { Text(text = "Search title or details") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("note-search-field"),
+                singleLine = true,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                NoteSortOption.entries.forEach { sortOption ->
+                    FilterChip(
+                        selected = state.sortOption == sortOption,
+                        onClick = { onSortOptionChanged(sortOption) },
+                        label = { Text(text = sortOption.label) },
+                    )
+                }
             }
         }
     }
@@ -173,7 +228,7 @@ private fun NotesList(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "No notes yet. Add one above to get started.",
+                text = emptyStateMessage(searchQuery = state.searchQuery),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
@@ -192,5 +247,19 @@ private fun NotesList(
                 onDeleteClick = { onDeleteClick(note.id) },
             )
         }
+    }
+}
+
+/**
+ * Returns the empty-state copy for the current search context.
+ *
+ * @param searchQuery Current search text.
+ * @return User-facing empty-state message.
+ */
+private fun emptyStateMessage(searchQuery: String): String {
+    return if (searchQuery.isBlank()) {
+        "No notes yet. Add one above to get started."
+    } else {
+        "No notes match that search yet."
     }
 }

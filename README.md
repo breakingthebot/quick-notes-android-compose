@@ -1,6 +1,6 @@
 # Quick Notes
 
-Quick Notes is a Kotlin Android app for creating, editing, and deleting personal notes with local Room storage and a Jetpack Compose UI.
+Quick Notes is a Kotlin Android app for creating, editing, deleting, searching, and sorting personal notes with local Room storage and a Jetpack Compose UI.
 
 ## Stack
 - Kotlin
@@ -29,11 +29,11 @@ This project does not require environment variables right now. `.env.example` is
 Not deployed. This is a local Android application.
 
 ## Architecture Notes
-I built the first iteration as a straightforward single-screen notes app. The app keeps the interface simple: a note editor at the top and a saved-notes list underneath, so the create/edit/delete loop is obvious without extra navigation. I used Room instead of a lighter key-value store because the app already needs structured CRUD behavior, and that choice leaves room for later features like search, tags, filters, or archived notes without rewriting storage.
+I built the app as a straightforward single-screen notes experience. The editor stays at the top, while the saved note list underneath now supports quick text search and client-side sorting, so the app remains usable once the note count grows without introducing extra navigation or a heavier multi-screen flow. I used Room instead of a lighter key-value store because the app already needs structured CRUD behavior, and that choice leaves room for later features like tags, filters, or archived notes without rewriting storage.
 
-The code is split into small files by responsibility: Room entities and DAO in `data` and `model`, formatting and input cleanup in `util`, screen rendering in `ui`, and state management in `viewmodel`. That structure keeps the first release small enough to understand quickly while still matching a production-style Android architecture a team could extend.
+The code is split into small files by responsibility: Room entities and DAO in `data` and `model`, formatting and input cleanup in `util`, screen rendering in `ui`, and state management in `viewmodel`. Search and sorting are handled as pure list-formatting logic in the state layer instead of being mixed into the database contract, which keeps the UI responsive and makes the behavior easy to test in isolation.
 
 ## Notes
-- This first iteration focuses on core local CRUD only.
+- The current iteration focuses on local CRUD plus lightweight search and sort controls.
 - The app currently uses a single-screen flow instead of multi-screen navigation.
 - Room version `2.6.1` is used for stable local persistence with Kotlin coroutines.

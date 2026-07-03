@@ -9,8 +9,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.breakingthebot.quicknotes.data.NoteRepository
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.ui.NoteSortOption
 import com.breakingthebot.quicknotes.ui.NotesScreenState
 import com.breakingthebot.quicknotes.util.NoteInputSanitizer
+import com.breakingthebot.quicknotes.util.NoteListFormatter
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,7 +40,13 @@ class NotesViewModel(
         repository.observeNotes(),
         editorState,
     ) { notes, editor ->
-        editor.copy(notes = notes)
+        editor.copy(
+            notes = NoteListFormatter.formatNotes(
+                notes = notes,
+                searchQuery = editor.searchQuery,
+                sortOption = editor.sortOption,
+            ),
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
@@ -69,6 +77,24 @@ class NotesViewModel(
     }
 
     /**
+     * Updates the search query used to filter the visible note list.
+     *
+     * @param query New search field value.
+     */
+    fun onSearchQueryChanged(query: String) {
+        editorState.value = editorState.value.copy(searchQuery = query)
+    }
+
+    /**
+     * Updates the selected note list sort mode.
+     *
+     * @param sortOption New list ordering selection.
+     */
+    fun onSortOptionChanged(sortOption: NoteSortOption) {
+        editorState.value = editorState.value.copy(sortOption = sortOption)
+    }
+
+    /**
      * Loads an existing note into the editor.
      *
      * @param noteId Identifier of the note to edit.
@@ -86,7 +112,11 @@ class NotesViewModel(
      * Clears the editor back to create mode.
      */
     fun clearEditor() {
-        editorState.value = NotesScreenState(notes = screenState.value.notes)
+        editorState.value = editorState.value.copy(
+            currentTitle = "",
+            currentBody = "",
+            selectedNoteId = null,
+        )
     }
 
     /**
