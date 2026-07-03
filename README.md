@@ -1,6 +1,6 @@
 # Quick Notes
 
-Quick Notes is a Kotlin Android app for creating, editing, archiving, restoring, deleting, searching, and sorting personal notes with local Room storage and a Jetpack Compose UI.
+Quick Notes is a Kotlin Android app for creating, editing, archiving, restoring, deleting, searching, and sorting personal notes with local Room storage, a Jetpack Compose UI, and a polished accessible single-screen workflow.
 
 ## Stack
 - Kotlin
@@ -29,11 +29,11 @@ This project does not require environment variables right now. `.env.example` is
 Not deployed. This is a local Android application.
 
 ## Architecture Notes
-I built the app as a straightforward single-screen notes experience. The editor stays at the top, while the saved note list underneath supports quick text search, client-side sorting, and now a split between active and archived notes, so the app remains usable once the note count grows without introducing extra navigation or a heavier multi-screen flow. I used Room instead of a lighter key-value store because the app already needs structured CRUD behavior, and that choice made it straightforward to persist archive state as a real part of the note model instead of a temporary UI flag.
+I built the app as a straightforward single-screen notes experience. The editor stays at the top, while the saved note list underneath supports quick text search, client-side sorting, and a split between active and archived notes, so the app remains usable once the note count grows without introducing extra navigation or a heavier multi-screen flow. In this iteration I tightened the UI hierarchy, empty states, and interaction sizing so the screen feels more deliberate and is easier to use on touch devices and assistive technology.
 
-The code is split into small files by responsibility: Room entities and DAO in `data` and `model`, formatting and input cleanup in `util`, screen rendering in `ui`, and state management in `viewmodel`. Search, collection scoping, and sorting are handled as pure list-formatting logic in the state layer instead of being mixed into the database contract, while the archive flag itself is stored in Room and migrated explicitly so the feature behaves like real product data rather than a cosmetic filter.
+The code is split into small files by responsibility: Room entities and DAO in `data` and `model`, formatting and input cleanup in `util`, screen rendering in `ui`, and state management in `viewmodel`. Search, collection scoping, and sorting are handled as pure list-formatting logic in the state layer instead of being mixed into the database contract, while the archive flag itself is stored in Room and migrated explicitly so the feature behaves like real product data rather than a cosmetic filter. The presentation layer now also carries clearer typography, stronger card hierarchy, and accessibility-focused semantics without complicating the underlying app logic.
 
 ## Notes
-- The current iteration focuses on local CRUD plus lightweight search, sort, archive, and restore controls.
+- The current iteration focuses on local CRUD plus search, sort, archive/restore, and a UI/accessibility polish pass.
 - The app currently uses a single-screen flow instead of multi-screen navigation.
 - Room version `2.6.1` is used for stable local persistence with Kotlin coroutines.

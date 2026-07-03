@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-07-03
+- Polished the main screen with stronger typography, clearer section hierarchy, and richer summary/empty states.
+- Increased touch target sizes for key actions and form fields to improve mobile usability.
+- Added accessibility-oriented semantics for headings and note cards.
+- Refined note card styling to improve scanability and action clarity.
+
 ## 0.3.0 - 2026-07-03
 - Added archive and restore actions so notes can be hidden from the main list without permanent deletion.
 - Added active and archived collection filters to the note list controls.

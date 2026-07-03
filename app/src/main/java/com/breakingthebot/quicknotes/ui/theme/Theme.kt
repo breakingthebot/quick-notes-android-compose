@@ -6,7 +6,6 @@
 package com.breakingthebot.quicknotes.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
@@ -15,15 +14,12 @@ private val LightColors = lightColorScheme(
     secondary = Coral,
     background = Paper,
     surface = SoftBlue,
+    surfaceVariant = Paper,
     onPrimary = Paper,
     onSecondary = Paper,
     onBackground = Ink,
     onSurface = Ink,
-)
-
-private val DarkColors = darkColorScheme(
-    primary = SoftBlue,
-    secondary = Coral,
+    onSurfaceVariant = SlateBlue,
 )
 
 /**
