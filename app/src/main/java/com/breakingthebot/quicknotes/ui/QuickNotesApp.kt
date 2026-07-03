@@ -322,7 +322,7 @@ private fun NoteEditorCard(
                 label = { Text(text = "Title") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .defaultMinSize(minHeight = 56.dp),
+                    .defaultMinSize(minHeight = 56.dp)
                     .testTag("title-input"),
                 singleLine = true,
             )
