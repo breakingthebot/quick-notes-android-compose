@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0 - 2026-07-03
+- Added Compose UI instrumentation tests for create, search, tag filtering, and archive/restore flows.
+- Added stable test tags to key inputs, chips, note cards, and action buttons.
+- Expanded GitHub Actions with an emulator-backed UI test job in addition to unit tests.
+
 ## 0.5.0 - 2026-07-03
 - Added persisted note tags with comma-separated editor input and in-list tag display.
 - Added collection-scoped tag filter chips alongside existing search and sort controls.

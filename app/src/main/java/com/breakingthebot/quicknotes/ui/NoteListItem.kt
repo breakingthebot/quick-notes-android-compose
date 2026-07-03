@@ -20,6 +20,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +50,7 @@ fun NoteListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag("note-card-${note.title}")
             .semantics {
                 contentDescription = "Note titled ${note.title}"
             }
@@ -101,13 +103,23 @@ fun NoteListItem(
             ) {
                 OutlinedButton(
                     onClick = if (isArchivedCollection) onRestoreClick else onArchiveClick,
-                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = 48.dp)
+                        .testTag(
+                            if (isArchivedCollection) {
+                                "restore-button-${note.title}"
+                            } else {
+                                "archive-button-${note.title}"
+                            },
+                        ),
                 ) {
                     Text(text = if (isArchivedCollection) "Restore" else "Archive")
                 }
                 OutlinedButton(
                     onClick = onDeleteClick,
-                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = 48.dp)
+                        .testTag("delete-button-${note.title}"),
                 ) {
                     Text(text = "Delete")
                 }

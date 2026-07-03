@@ -210,6 +210,7 @@ private fun NoteListControls(
                     FilterChip(
                         selected = state.noteCollection == noteCollection,
                         onClick = { onNoteCollectionChanged(noteCollection) },
+                        modifier = Modifier.testTag("collection-chip-${noteCollection.name.lowercase()}"),
                         label = { Text(text = noteCollection.label) },
                     )
                 }
@@ -240,12 +241,14 @@ private fun NoteListControls(
                     FilterChip(
                         selected = state.selectedTag == null,
                         onClick = { onSelectedTagChanged(null) },
+                        modifier = Modifier.testTag("tag-filter-all"),
                         label = { Text(text = "All tags") },
                     )
                     state.availableTags.forEach { tag ->
                         FilterChip(
                             selected = state.selectedTag == tag,
                             onClick = { onSelectedTagChanged(tag) },
+                            modifier = Modifier.testTag("tag-filter-$tag"),
                             label = { Text(text = "#$tag") },
                         )
                     }
@@ -260,6 +263,7 @@ private fun NoteListControls(
                     FilterChip(
                         selected = state.sortOption == sortOption,
                         onClick = { onSortOptionChanged(sortOption) },
+                        modifier = Modifier.testTag("sort-chip-${sortOption.name.lowercase()}"),
                         label = { Text(text = sortOption.label) },
                     )
                 }
@@ -319,6 +323,7 @@ private fun NoteEditorCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = 56.dp),
+                    .testTag("title-input"),
                 singleLine = true,
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -328,7 +333,8 @@ private fun NoteEditorCard(
                 label = { Text(text = "Details") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(168.dp),
+                    .height(168.dp)
+                    .testTag("body-input"),
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
@@ -338,7 +344,8 @@ private fun NoteEditorCard(
                 supportingText = { Text(text = "Use commas to separate tags, for example: work, ideas") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .defaultMinSize(minHeight = 56.dp),
+                    .defaultMinSize(minHeight = 56.dp)
+                    .testTag("tags-input"),
                 singleLine = true,
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -350,7 +357,8 @@ private fun NoteEditorCard(
                     onClick = onSaveClick,
                     modifier = Modifier
                         .weight(1f)
-                        .defaultMinSize(minHeight = 52.dp),
+                        .defaultMinSize(minHeight = 52.dp)
+                        .testTag("save-note-button"),
                 ) {
                     Text(text = if (state.selectedNoteId == null) "Save note" else "Update note")
                 }
@@ -358,7 +366,8 @@ private fun NoteEditorCard(
                     onClick = onClearClick,
                     modifier = Modifier
                         .weight(1f)
-                        .defaultMinSize(minHeight = 52.dp),
+                        .defaultMinSize(minHeight = 52.dp)
+                        .testTag("clear-note-button"),
                 ) {
                     Text(text = "Clear")
                 }
