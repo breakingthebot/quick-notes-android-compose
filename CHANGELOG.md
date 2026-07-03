@@ -6,3 +6,4 @@
 - Built a single-screen note editor with create, edit, delete, snackbar feedback, and empty state handling.
 - Added unit tests for the repository behavior and note input sanitizer.
 - Added MIT license, repo hygiene files, project documentation, and Android CI workflow fixes for Linux runners.
+- Fixed Android theme dependency wiring so CI can resolve the Material 3 app theme during resource linking.
