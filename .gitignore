@@ -1,0 +1,19 @@
+# Root ignore rules for the Android notes app.
+# Connects to: local development tools, Gradle outputs, and untracked local instruction files.
+# Created: 2026-07-03
+AGENTS.md
+.gradle/
+/build/
+/local.properties
+/.idea/
+/.kotlin/
+*.iml
+/captures/
+/app/build/
+.DS_Store
+Thumbs.db
+*.log
+.env
+venv/
+node_modules/
+dist/

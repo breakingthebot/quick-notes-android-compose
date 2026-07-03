@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Placeholder backup rules for Android auto backup support.
+  Connects to: app manifest if backup customization is added later.
+  Created: 2026-07-03
+-->
+<full-backup-content />

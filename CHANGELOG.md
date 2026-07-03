@@ -1,0 +1,8 @@
+# Changelog
+
+## 0.1.0 - 2026-07-03
+- Scaffolded a Kotlin Android app using Jetpack Compose and Gradle Kotlin DSL.
+- Added a Room-backed note model, DAO, repository, and singleton database.
+- Built a single-screen note editor with create, edit, delete, snackbar feedback, and empty state handling.
+- Added unit tests for the repository behavior and note input sanitizer.
+- Added MIT license, repo hygiene files, and project documentation.

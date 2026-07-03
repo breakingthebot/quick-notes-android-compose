@@ -1,0 +1,30 @@
+# Runs Android unit tests for every push and pull request.
+# Connects to: Gradle wrapper, app module tests, and GitHub Actions.
+# Created: 2026-07-03
+name: Android CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Placeholder data extraction rules for Android 12+.
+  Connects to: app manifest if extraction rules are enabled later.
+  Created: 2026-07-03
+-->
+<data-extraction-rules />

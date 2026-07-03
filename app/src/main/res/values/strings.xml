@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Stores user-facing strings for the notes app.
+  Connects to: AndroidManifest.xml and Compose UI.
+  Created: 2026-07-03
+-->
+<resources>
+    <string name="app_name">Quick Notes</string>
+</resources>
