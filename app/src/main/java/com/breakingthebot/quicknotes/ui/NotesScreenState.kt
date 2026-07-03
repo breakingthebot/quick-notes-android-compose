@@ -14,12 +14,15 @@ import com.breakingthebot.quicknotes.model.Note
  * @property currentTitle Editable title field value.
  * @property currentBody Editable body field value.
  * @property selectedNoteId Existing note being edited, or null for new notes.
+ * @property selectedNoteIsArchived Archive state for the selected note being edited.
  */
 data class NotesScreenState(
     val notes: List<Note> = emptyList(),
     val currentTitle: String = "",
     val currentBody: String = "",
     val selectedNoteId: Int? = null,
+    val selectedNoteIsArchived: Boolean = false,
     val searchQuery: String = "",
     val sortOption: NoteSortOption = NoteSortOption.NEWEST,
+    val noteCollection: NoteCollection = NoteCollection.ACTIVE,
 )

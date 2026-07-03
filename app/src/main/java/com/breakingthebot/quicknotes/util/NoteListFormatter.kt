@@ -6,6 +6,7 @@
 package com.breakingthebot.quicknotes.util
 
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.ui.NoteCollection
 import com.breakingthebot.quicknotes.ui.NoteSortOption
 import java.util.Locale
 
@@ -17,21 +18,29 @@ object NoteListFormatter {
      * Returns notes matching the current query and sort mode.
      *
      * @param notes Stored notes from the repository.
+     * @param noteCollection Selected visible note collection.
      * @param searchQuery User-entered search query.
      * @param sortOption Selected list ordering mode.
      * @return Notes ready for on-screen display.
      */
     fun formatNotes(
         notes: List<Note>,
+        noteCollection: NoteCollection,
         searchQuery: String,
         sortOption: NoteSortOption,
     ): List<Note> {
         val normalizedQuery = searchQuery.trim().lowercase(Locale.getDefault())
+        val scopedNotes = notes.filter { note ->
+            when (noteCollection) {
+                NoteCollection.ACTIVE -> !note.isArchived
+                NoteCollection.ARCHIVED -> note.isArchived
+            }
+        }
 
         val filteredNotes = if (normalizedQuery.isBlank()) {
-            notes
+            scopedNotes
         } else {
-            notes.filter { note ->
+            scopedNotes.filter { note ->
                 note.title.lowercase(Locale.getDefault()).contains(normalizedQuery) ||
                     note.body.lowercase(Locale.getDefault()).contains(normalizedQuery)
             }

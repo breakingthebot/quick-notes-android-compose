@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-07-03
+- Added archive and restore actions so notes can be hidden from the main list without permanent deletion.
+- Added active and archived collection filters to the note list controls.
+- Added a Room schema migration to persist archive state for existing installs.
+- Expanded note list tests to cover archived-note filtering behavior.
+
 ## 0.2.0 - 2026-07-03
 - Added note list search so users can match notes by title or body text.
 - Added sort controls for newest, oldest, and alphabetical title ordering.

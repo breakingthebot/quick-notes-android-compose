@@ -26,13 +26,19 @@ import com.breakingthebot.quicknotes.util.TimeFormatter
  * Card for an individual note preview.
  *
  * @param note Note data to render.
+ * @param isArchivedCollection Whether the card is being rendered in the archived list.
  * @param onClick Callback for selecting the note for editing.
+ * @param onArchiveClick Callback for archiving the note.
+ * @param onRestoreClick Callback for restoring the note.
  * @param onDeleteClick Callback for deleting the note.
  */
 @Composable
 fun NoteListItem(
     note: Note,
+    isArchivedCollection: Boolean,
     onClick: () -> Unit,
+    onArchiveClick: () -> Unit,
+    onRestoreClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
     Card(
@@ -60,8 +66,15 @@ fun NoteListItem(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
             )
-            OutlinedButton(onClick = onDeleteClick) {
-                Text(text = "Delete")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = if (isArchivedCollection) onRestoreClick else onArchiveClick,
+                ) {
+                    Text(text = if (isArchivedCollection) "Restore" else "Archive")
+                }
+                OutlinedButton(onClick = onDeleteClick) {
+                    Text(text = "Delete")
+                }
             }
         }
     }

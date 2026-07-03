@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.breakingthebot.quicknotes.data.NoteRepository
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.ui.NoteCollection
 import com.breakingthebot.quicknotes.ui.NoteSortOption
 import com.breakingthebot.quicknotes.ui.NotesScreenState
 import com.breakingthebot.quicknotes.util.NoteInputSanitizer
@@ -43,6 +44,7 @@ class NotesViewModel(
         editor.copy(
             notes = NoteListFormatter.formatNotes(
                 notes = notes,
+                noteCollection = editor.noteCollection,
                 searchQuery = editor.searchQuery,
                 sortOption = editor.sortOption,
             ),
@@ -95,6 +97,15 @@ class NotesViewModel(
     }
 
     /**
+     * Updates the visible note collection between active and archived notes.
+     *
+     * @param noteCollection New collection tab selection.
+     */
+    fun onNoteCollectionChanged(noteCollection: NoteCollection) {
+        editorState.value = editorState.value.copy(noteCollection = noteCollection)
+    }
+
+    /**
      * Loads an existing note into the editor.
      *
      * @param noteId Identifier of the note to edit.
@@ -105,6 +116,7 @@ class NotesViewModel(
             currentTitle = selectedNote.title,
             currentBody = selectedNote.body,
             selectedNoteId = selectedNote.id,
+            selectedNoteIsArchived = selectedNote.isArchived,
         )
     }
 
@@ -116,6 +128,7 @@ class NotesViewModel(
             currentTitle = "",
             currentBody = "",
             selectedNoteId = null,
+            selectedNoteIsArchived = false,
         )
     }
 
@@ -137,6 +150,7 @@ class NotesViewModel(
             title = sanitizedTitle,
             body = sanitizedBody,
             updatedAt = System.currentTimeMillis(),
+            isArchived = editorState.value.selectedNoteIsArchived,
         )
 
         viewModelScope.launch {
@@ -164,6 +178,48 @@ class NotesViewModel(
                 clearEditor()
             }
             emitMessage("Note deleted.")
+        }
+    }
+
+    /**
+     * Moves a note into the archive collection.
+     *
+     * @param noteId Identifier of the note to archive.
+     */
+    fun archiveNote(noteId: Int) {
+        val note = screenState.value.notes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
+        viewModelScope.launch {
+            repository.updateNote(
+                note.copy(
+                    isArchived = true,
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+            if (editorState.value.selectedNoteId == noteId) {
+                clearEditor()
+            }
+            emitMessage("Note archived.")
+        }
+    }
+
+    /**
+     * Restores a note back to the active collection.
+     *
+     * @param noteId Identifier of the note to restore.
+     */
+    fun restoreNote(noteId: Int) {
+        val note = screenState.value.notes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
+        viewModelScope.launch {
+            repository.updateNote(
+                note.copy(
+                    isArchived = false,
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+            if (editorState.value.selectedNoteId == noteId) {
+                clearEditor()
+            }
+            emitMessage("Note restored.")
         }
     }
 

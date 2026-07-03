@@ -16,7 +16,7 @@ private const val DATABASE_NAME = "quick_notes.db"
 /**
  * Room database that stores notes locally on the device.
  */
-@Database(entities = [Note::class], version = 1, exportSchema = false)
+@Database(entities = [Note::class], version = 2, exportSchema = false)
 abstract class QuickNotesDatabase : RoomDatabase() {
     /**
      * Returns the DAO used to query and mutate note records.
@@ -41,6 +41,8 @@ abstract class QuickNotesDatabase : RoomDatabase() {
                     context.applicationContext,
                     QuickNotesDatabase::class.java,
                     DATABASE_NAME,
+                ).addMigrations(
+                    DatabaseMigrations.migration1To2,
                 ).build().also { instance = it }
             }
         }

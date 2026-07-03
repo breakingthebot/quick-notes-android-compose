@@ -83,6 +83,7 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
             Spacer(modifier = Modifier.height(16.dp))
             NoteListControls(
                 state = screenState,
+                onNoteCollectionChanged = viewModel::onNoteCollectionChanged,
                 onSearchQueryChanged = viewModel::onSearchQueryChanged,
                 onSortOptionChanged = viewModel::onSortOptionChanged,
             )
@@ -91,6 +92,8 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
                 NotesList(
                     state = screenState,
                     onNoteClick = viewModel::selectNote,
+                    onArchiveClick = viewModel::archiveNote,
+                    onRestoreClick = viewModel::restoreNote,
                     onDeleteClick = viewModel::deleteNote,
                 )
             }
@@ -108,6 +111,7 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
 @Composable
 private fun NoteListControls(
     state: NotesScreenState,
+    onNoteCollectionChanged: (NoteCollection) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onSortOptionChanged: (NoteSortOption) -> Unit,
 ) {
@@ -118,6 +122,19 @@ private fun NoteListControls(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                NoteCollection.entries.forEach { noteCollection ->
+                    FilterChip(
+                        selected = state.noteCollection == noteCollection,
+                        onClick = { onNoteCollectionChanged(noteCollection) },
+                        label = { Text(text = noteCollection.label) },
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = state.searchQuery,
@@ -220,6 +237,8 @@ private fun NoteEditorCard(
 private fun NotesList(
     state: NotesScreenState,
     onNoteClick: (Int) -> Unit,
+    onArchiveClick: (Int) -> Unit,
+    onRestoreClick: (Int) -> Unit,
     onDeleteClick: (Int) -> Unit,
 ) {
     if (state.notes.isEmpty()) {
@@ -228,7 +247,10 @@ private fun NotesList(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = emptyStateMessage(searchQuery = state.searchQuery),
+                text = emptyStateMessage(
+                    searchQuery = state.searchQuery,
+                    noteCollection = state.noteCollection,
+                ),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
@@ -243,7 +265,10 @@ private fun NotesList(
         items(items = state.notes, key = { note -> note.id }) { note ->
             NoteListItem(
                 note = note,
+                isArchivedCollection = state.noteCollection == NoteCollection.ARCHIVED,
                 onClick = { onNoteClick(note.id) },
+                onArchiveClick = { onArchiveClick(note.id) },
+                onRestoreClick = { onRestoreClick(note.id) },
                 onDeleteClick = { onDeleteClick(note.id) },
             )
         }
@@ -256,9 +281,14 @@ private fun NotesList(
  * @param searchQuery Current search text.
  * @return User-facing empty-state message.
  */
-private fun emptyStateMessage(searchQuery: String): String {
-    return if (searchQuery.isBlank()) {
-        "No notes yet. Add one above to get started."
+private fun emptyStateMessage(
+    searchQuery: String,
+    noteCollection: NoteCollection = NoteCollection.ACTIVE,
+): String {
+    return if (searchQuery.isBlank() && noteCollection == NoteCollection.ACTIVE) {
+        "No active notes yet. Add one above to get started."
+    } else if (searchQuery.isBlank() && noteCollection == NoteCollection.ARCHIVED) {
+        "No archived notes yet."
     } else {
         "No notes match that search yet."
     }

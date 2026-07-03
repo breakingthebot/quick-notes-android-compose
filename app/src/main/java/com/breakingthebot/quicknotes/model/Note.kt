@@ -15,6 +15,7 @@ import androidx.room.PrimaryKey
  * @property title User-provided note title.
  * @property body User-provided note body content.
  * @property updatedAt Epoch millis for the most recent edit.
+ * @property isArchived Whether the note is hidden from the active list.
  */
 @Entity(tableName = "notes")
 data class Note(
@@ -22,4 +23,5 @@ data class Note(
     val title: String,
     val body: String,
     val updatedAt: Long,
+    val isArchived: Boolean = false,
 )
