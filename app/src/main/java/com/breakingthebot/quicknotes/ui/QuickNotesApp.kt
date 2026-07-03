@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
@@ -84,7 +85,7 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
             SnackbarHost(hostState = snackbarHostState)
         },
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
@@ -96,34 +97,37 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
                     ),
                 )
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .imePadding(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            ScreenSummary(state = screenState)
-            Spacer(modifier = Modifier.height(16.dp))
-            NoteEditorCard(
-                state = screenState,
-                onTitleChange = viewModel::onTitleChanged,
-                onBodyChange = viewModel::onBodyChanged,
-                onSaveClick = viewModel::saveNote,
-                onClearClick = viewModel::clearEditor,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            NoteListControls(
-                state = screenState,
-                onNoteCollectionChanged = viewModel::onNoteCollectionChanged,
-                onSearchQueryChanged = viewModel::onSearchQueryChanged,
-                onSortOptionChanged = viewModel::onSortOptionChanged,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                NotesList(
+            item {
+                ScreenSummary(state = screenState)
+            }
+            item {
+                NoteEditorCard(
                     state = screenState,
-                    onNoteClick = viewModel::selectNote,
-                    onArchiveClick = viewModel::archiveNote,
-                    onRestoreClick = viewModel::restoreNote,
-                    onDeleteClick = viewModel::deleteNote,
+                    onTitleChange = viewModel::onTitleChanged,
+                    onBodyChange = viewModel::onBodyChanged,
+                    onSaveClick = viewModel::saveNote,
+                    onClearClick = viewModel::clearEditor,
                 )
             }
+            item {
+                NoteListControls(
+                    state = screenState,
+                    onNoteCollectionChanged = viewModel::onNoteCollectionChanged,
+                    onSearchQueryChanged = viewModel::onSearchQueryChanged,
+                    onSortOptionChanged = viewModel::onSortOptionChanged,
+                )
+            }
+            NotesListContent(
+                state = screenState,
+                onNoteClick = viewModel::selectNote,
+                onArchiveClick = viewModel::archiveNote,
+                onRestoreClick = viewModel::restoreNote,
+                onDeleteClick = viewModel::deleteNote,
+            )
         }
     }
 }
@@ -321,14 +325,13 @@ private fun NoteEditorCard(
 }
 
 /**
- * Renders either the empty state or the list of notes.
+ * Renders either the empty-state item or the note list items within the screen list.
  *
  * @param state Current UI state with notes and editor values.
  * @param onNoteClick Callback for selecting a note.
  * @param onDeleteClick Callback for deleting a note.
  */
-@Composable
-private fun NotesList(
+private fun androidx.compose.foundation.lazy.LazyListScope.NotesListContent(
     state: NotesScreenState,
     onNoteClick: (Int) -> Unit,
     onArchiveClick: (Int) -> Unit,
@@ -336,32 +339,28 @@ private fun NotesList(
     onDeleteClick: (Int) -> Unit,
 ) {
     if (state.notes.isEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            EmptyNotesState(state = state)
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                EmptyNotesState(state = state)
+            }
         }
         return
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        items(items = state.notes, key = { note -> note.id }) { note ->
-            NoteListItem(
-                note = note,
-                isArchivedCollection = state.noteCollection == NoteCollection.ARCHIVED,
-                onClick = { onNoteClick(note.id) },
-                onArchiveClick = { onArchiveClick(note.id) },
-                onRestoreClick = { onRestoreClick(note.id) },
-                onDeleteClick = { onDeleteClick(note.id) },
-            )
-        }
+    items(items = state.notes, key = { note -> note.id }) { note ->
+        NoteListItem(
+            note = note,
+            isArchivedCollection = state.noteCollection == NoteCollection.ARCHIVED,
+            onClick = { onNoteClick(note.id) },
+            onArchiveClick = { onArchiveClick(note.id) },
+            onRestoreClick = { onRestoreClick(note.id) },
+            onDeleteClick = { onDeleteClick(note.id) },
+        )
     }
 }
 

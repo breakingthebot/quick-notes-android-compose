@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 - 2026-07-03
+- Reworked the main screen into a single scrollable list so saved notes remain reachable on smaller screens.
+- Added IME-aware padding so the layout behaves better while the keyboard is open.
+
 ## 0.4.0 - 2026-07-03
 - Polished the main screen with stronger typography, clearer section hierarchy, and richer summary/empty states.
 - Increased touch target sizes for key actions and form fields to improve mobile usability.
