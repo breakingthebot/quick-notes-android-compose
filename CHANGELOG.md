@@ -10,6 +10,11 @@
 - Switched the CI emulator to a lighter Android 29 `x86` profile with more CPU allocated for more reliable boot behavior.
 - Matched the CI emulator architecture to the GitHub arm64 macOS runner by switching to an Android 30 `arm64-v8a` image.
 
+## 0.7.0 - 2026-07-04
+- Replaced flaky emulator-backed Compose instrumentation coverage with Robolectric-backed local JVM Compose UI tests.
+- Added reusable in-memory DAO and main-dispatcher test helpers so screen tests can exercise real view-model flows without Room or an emulator.
+- Simplified GitHub Actions back to a single reliable JVM test job that runs unit tests and Compose UI tests together with `testDebugUnitTest`.
+
 ## 0.5.0 - 2026-07-03
 - Added persisted note tags with comma-separated editor input and in-list tag display.
 - Added collection-scoped tag filter chips alongside existing search and sort controls.

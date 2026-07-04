@@ -1,40 +1,70 @@
 /*
- * Exercises the main user flows of the notes app through Compose UI tests.
- * Connects to: MainActivity, Compose screen test tags, and GitHub Actions instrumentation runs.
- * Created: 2026-07-03
+ * Exercises the main notes flows through Robolectric-backed Compose UI tests.
+ * Connects to: QuickNotesApp, NotesViewModel, InMemoryNoteDao, and local JVM CI.
+ * Created: 2026-07-04
  */
-package com.breakingthebot.quicknotes
+package com.breakingthebot.quicknotes.ui
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.breakingthebot.quicknotes.data.InMemoryNoteDao
+import com.breakingthebot.quicknotes.data.NoteRepository
+import com.breakingthebot.quicknotes.ui.theme.QuickNotesTheme
+import com.breakingthebot.quicknotes.util.MainDispatcherRule
+import com.breakingthebot.quicknotes.viewmodel.NotesViewModel
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
- * Instrumentation tests for the primary note management flows.
+ * Local JVM Compose tests for the highest-value user flows.
  */
-@RunWith(AndroidJUnit4::class)
-class NotesAppTest {
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [30])
+class QuickNotesAppRobolectricTest {
     @get:Rule
-    val composeRule = createAndroidComposeRule<MainActivity>()
+    val mainDispatcherRule = MainDispatcherRule()
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    private lateinit var viewModel: NotesViewModel
 
     /**
-     * Verifies that a note can be created and rendered in the list.
+     * Sets up a fresh screen instance backed by in-memory note storage.
+     */
+    @Before
+    fun setUp() {
+        viewModel = NotesViewModel(
+            repository = NoteRepository(InMemoryNoteDao()),
+        )
+
+        composeRule.setContent {
+            QuickNotesTheme {
+                QuickNotesApp(viewModel = viewModel)
+            }
+        }
+    }
+
+    /**
+     * Verifies that saving a note renders it in the active list.
      */
     @Test
     fun createNote_showsSavedNoteInList() {
-        val title = uniqueTitle("sprint-plan")
+        val title = "Sprint Plan"
+
         createNote(
             title = title,
-            body = "Write UI tests",
+            body = "Write JVM Compose tests",
             tags = "work, test",
         )
 
@@ -47,28 +77,27 @@ class NotesAppTest {
      */
     @Test
     fun search_filtersVisibleNotes() {
-        val firstTitle = uniqueTitle("sprint-plan")
-        val secondTitle = uniqueTitle("groceries")
+        val firstTitle = "Sprint Plan"
+        val secondTitle = "Groceries"
 
-        createNote(firstTitle, "Write UI tests", "work")
+        createNote(firstTitle, "Write JVM Compose tests", "work")
         createNote(secondTitle, "Buy apples", "home")
 
-        composeRule.onNodeWithTag("note-search-field")
-            .performTextInput("Sprint")
+        composeRule.onNodeWithTag("note-search-field").performTextInput("sprint")
 
         composeRule.onNodeWithText(firstTitle).assertIsDisplayed()
         composeRule.onAllNodesWithText(secondTitle).assertCountEquals(0)
     }
 
     /**
-     * Verifies that tag chips filter the active collection.
+     * Verifies that tag chips filter the current collection.
      */
     @Test
     fun tagFilter_limitsNotesToSelectedTag() {
-        val workTitle = uniqueTitle("work-note")
-        val healthTitle = uniqueTitle("health-note")
+        val workTitle = "Work Note"
+        val healthTitle = "Health Note"
 
-        createNote(workTitle, "Write UI tests", "work")
+        createNote(workTitle, "Write JVM Compose tests", "work")
         createNote(healthTitle, "Morning session", "health")
 
         composeRule.onNodeWithTag("tag-filter-work").performClick()
@@ -78,15 +107,15 @@ class NotesAppTest {
     }
 
     /**
-     * Verifies that notes can move between active and archived collections.
+     * Verifies that notes move between active and archived collections.
      */
     @Test
     fun archiveAndRestore_movesNoteAcrossCollections() {
-        val title = uniqueTitle("archive-note")
-        createNote(title, "Write UI tests", "work")
+        val title = "Archive Note"
+
+        createNote(title, "Move this note", "work")
 
         composeRule.onNodeWithTag("archive-button-$title").performClick()
-
         composeRule.onNodeWithTag("collection-chip-archived").performClick()
         composeRule.onNodeWithText(title).assertIsDisplayed()
 
@@ -96,7 +125,7 @@ class NotesAppTest {
     }
 
     /**
-     * Creates a note through the public UI.
+     * Creates a note through the public screen UI.
      *
      * @param title Note title.
      * @param body Note body.
@@ -111,15 +140,6 @@ class NotesAppTest {
         composeRule.onNodeWithTag("body-input").performTextInput(body)
         composeRule.onNodeWithTag("tags-input").performTextInput(tags)
         composeRule.onNodeWithTag("save-note-button").performClick()
-    }
-
-    /**
-     * Returns a unique title so tests do not depend on global app storage state.
-     *
-     * @param prefix Stable prefix for the scenario.
-     * @return Unique note title.
-     */
-    private fun uniqueTitle(prefix: String): String {
-        return "$prefix-${System.nanoTime()}"
+        composeRule.waitForIdle()
     }
 }
