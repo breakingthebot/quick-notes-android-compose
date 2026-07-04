@@ -54,8 +54,9 @@ jobs:
       - name: Run Compose UI tests
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
-          api-level: 29
-          arch: x86
+          api-level: 30
+          arch: arm64-v8a
+          target: google_apis
           profile: pixel
           cores: 4
           emulator-boot-timeout: 900

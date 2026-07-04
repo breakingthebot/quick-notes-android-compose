@@ -8,6 +8,7 @@
 - Moved the emulator-backed UI test job to macOS runners to avoid Linux emulator instability in CI.
 - Increased the emulator boot timeout to accommodate slower hosted runner startup during UI-test runs.
 - Switched the CI emulator to a lighter Android 29 `x86` profile with more CPU allocated for more reliable boot behavior.
+- Matched the CI emulator architecture to the GitHub arm64 macOS runner by switching to an Android 30 `arm64-v8a` image.
 
 ## 0.5.0 - 2026-07-03
 - Added persisted note tags with comma-separated editor input and in-list tag display.
