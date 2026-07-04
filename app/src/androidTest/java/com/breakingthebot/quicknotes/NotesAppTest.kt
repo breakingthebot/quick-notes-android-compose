@@ -5,9 +5,10 @@
  */
 package com.breakingthebot.quicknotes
 
-import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -56,7 +57,7 @@ class NotesAppTest {
             .performTextInput("Sprint")
 
         composeRule.onNodeWithText(firstTitle).assertIsDisplayed()
-        composeRule.onNodeWithText(secondTitle).assertDoesNotExist()
+        composeRule.onAllNodesWithText(secondTitle).assertCountEquals(0)
     }
 
     /**
@@ -73,7 +74,7 @@ class NotesAppTest {
         composeRule.onNodeWithTag("tag-filter-work").performClick()
 
         composeRule.onNodeWithText(workTitle).assertIsDisplayed()
-        composeRule.onNodeWithText(healthTitle).assertDoesNotExist()
+        composeRule.onAllNodesWithText(healthTitle).assertCountEquals(0)
     }
 
     /**
