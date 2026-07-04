@@ -62,7 +62,7 @@ class QuickNotesAppRobolectricTest {
      */
     @Test
     fun createNote_showsSavedNoteInList() {
-        val title = "Sprint Plan"
+        val title = "sprint-plan"
 
         createNote(
             title = title,
@@ -80,8 +80,8 @@ class QuickNotesAppRobolectricTest {
      */
     @Test
     fun search_filtersVisibleNotes() {
-        val firstTitle = "Sprint Plan"
-        val secondTitle = "Groceries"
+        val firstTitle = "sprint-plan"
+        val secondTitle = "groceries-list"
 
         createNote(firstTitle, "Write JVM Compose tests", "work")
         createNote(secondTitle, "Buy apples", "home")
@@ -98,8 +98,8 @@ class QuickNotesAppRobolectricTest {
      */
     @Test
     fun tagFilter_limitsNotesToSelectedTag() {
-        val workTitle = "Work Note"
-        val healthTitle = "Health Note"
+        val workTitle = "work-note"
+        val healthTitle = "health-note"
 
         createNote(workTitle, "Write JVM Compose tests", "work")
         createNote(healthTitle, "Morning session", "health")
@@ -116,7 +116,7 @@ class QuickNotesAppRobolectricTest {
      */
     @Test
     fun archiveAndRestore_movesNoteAcrossCollections() {
-        val title = "Archive Note"
+        val title = "archive-note"
 
         createNote(title, "Move this note", "work")
 
