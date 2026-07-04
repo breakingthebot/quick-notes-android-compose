@@ -6,6 +6,7 @@
 - Expanded GitHub Actions with an emulator-backed UI test job in addition to unit tests.
 - Hardened the emulator workflow to wait for the Android package manager before installing the test APKs.
 - Moved the emulator-backed UI test job to macOS runners to avoid Linux emulator instability in CI.
+- Increased the emulator boot timeout to accommodate slower hosted runner startup during UI-test runs.
 
 ## 0.5.0 - 2026-07-03
 - Added persisted note tags with comma-separated editor input and in-list tag display.
