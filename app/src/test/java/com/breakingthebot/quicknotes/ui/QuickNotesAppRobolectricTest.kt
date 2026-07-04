@@ -8,12 +8,14 @@ package com.breakingthebot.quicknotes.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import com.breakingthebot.quicknotes.model.Note
 import com.breakingthebot.quicknotes.ui.theme.QuickNotesTheme
@@ -84,8 +86,10 @@ class QuickNotesAppRobolectricTest {
             tags = "work, test",
         )
 
-        composeRule.onAllNodesWithText(title).assertCountEquals(1)
-        composeRule.onAllNodesWithText("#work").assertCountEquals(1)
+        scrollToNoteCard(title)
+
+        composeRule.onNodeWithTag("note-card-$title").assertExists()
+        composeRule.onNodeWithTag("tag-filter-work").assertExists()
     }
 
     /**
@@ -102,8 +106,10 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("note-search-field").performScrollTo()
         composeRule.onNodeWithTag("note-search-field").performTextInput("sprint")
 
-        composeRule.onAllNodesWithText(firstTitle).assertCountEquals(1)
-        composeRule.onAllNodesWithText(secondTitle).assertCountEquals(0)
+        scrollToNoteCard(firstTitle)
+
+        composeRule.onNodeWithTag("note-card-$firstTitle").assertExists()
+        composeRule.onNodeWithTag("note-card-$secondTitle").assertDoesNotExist()
     }
 
     /**
@@ -120,8 +126,10 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("tag-filter-work").performScrollTo()
         composeRule.onNodeWithTag("tag-filter-work").performClick()
 
-        composeRule.onAllNodesWithText(workTitle).assertCountEquals(1)
-        composeRule.onAllNodesWithText(healthTitle).assertCountEquals(0)
+        scrollToNoteCard(workTitle)
+
+        composeRule.onNodeWithTag("note-card-$workTitle").assertExists()
+        composeRule.onNodeWithTag("note-card-$healthTitle").assertDoesNotExist()
     }
 
     /**
@@ -137,13 +145,15 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("archive-button-$title").performClick()
         composeRule.onNodeWithTag("collection-chip-archived").performScrollTo()
         composeRule.onNodeWithTag("collection-chip-archived").performClick()
-        composeRule.onAllNodesWithText(title).assertCountEquals(1)
+        scrollToNoteCard(title)
+        composeRule.onNodeWithTag("note-card-$title").assertExists()
 
         composeRule.onNodeWithTag("restore-button-$title").performScrollTo()
         composeRule.onNodeWithTag("restore-button-$title").performClick()
         composeRule.onNodeWithTag("collection-chip-active").performScrollTo()
         composeRule.onNodeWithTag("collection-chip-active").performClick()
-        composeRule.onAllNodesWithText(title).assertCountEquals(1)
+        scrollToNoteCard(title)
+        composeRule.onNodeWithTag("note-card-$title").assertExists()
     }
 
     /**
@@ -165,6 +175,16 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("tags-input").performTextInput(tags)
         composeRule.onNodeWithTag("save-note-button").performScrollTo()
         composeRule.onNodeWithTag("save-note-button").performClick()
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * Scrolls the list until the requested note card is composed and visible.
+     *
+     * @param title Note title used in the card test tag.
+     */
+    private fun scrollToNoteCard(title: String) {
+        composeRule.onNodeWithTag("notes-list").performScrollToNode(hasTestTag("note-card-$title"))
         composeRule.waitForIdle()
     }
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1 - 2026-07-04
+- Added a `notes-list` test tag to the main `LazyColumn` so Robolectric Compose tests can scroll directly to off-screen note cards before asserting on them.
+- Reworked the screen-level Robolectric assertions to target note-card semantics instead of ambiguous raw text matches shared by list items and filter chips.
+- Kept the coverage focused on the same user flows: create, search, tag filtering, and archive/restore.
+
 ## 0.6.0 - 2026-07-03
 - Added Compose UI instrumentation tests for create, search, tag filtering, and archive/restore flows.
 - Added stable test tags to key inputs, chips, note cards, and action buttons.
