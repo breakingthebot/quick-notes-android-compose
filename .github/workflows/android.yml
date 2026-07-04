@@ -54,8 +54,9 @@ jobs:
       - name: Run Compose UI tests
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
-          api-level: 30
-          arch: x86_64
-          profile: Nexus 6
+          api-level: 29
+          arch: x86
+          profile: pixel
+          cores: 4
           emulator-boot-timeout: 900
           script: adb wait-for-device && until adb shell service check package | grep "found"; do sleep 5; done && ./gradlew connectedDebugAndroidTest
