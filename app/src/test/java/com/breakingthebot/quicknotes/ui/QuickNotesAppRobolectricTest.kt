@@ -1,10 +1,13 @@
 /*
- * Exercises the main notes flows through Robolectric-backed Compose UI tests.
- * Connects to: QuickNotesApp, NotesViewModel, InMemoryNoteDao, and local JVM CI.
+ * Exercises the main notes flows through Robolectric-backed screen tests.
+ * Connects to: QuickNotesScreen, NotesScreenState, and local JVM CI.
  * Created: 2026-07-04
  */
 package com.breakingthebot.quicknotes.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -12,11 +15,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import com.breakingthebot.quicknotes.data.InMemoryNoteDao
-import com.breakingthebot.quicknotes.data.NoteRepository
+import com.breakingthebot.quicknotes.model.Note
 import com.breakingthebot.quicknotes.ui.theme.QuickNotesTheme
 import com.breakingthebot.quicknotes.util.MainDispatcherRule
-import com.breakingthebot.quicknotes.viewmodel.NotesViewModel
+import com.breakingthebot.quicknotes.util.NoteInputSanitizer
+import com.breakingthebot.quicknotes.util.NoteListFormatter
+import com.breakingthebot.quicknotes.util.NoteTagFormatter
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -36,20 +40,33 @@ class QuickNotesAppRobolectricTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private lateinit var viewModel: NotesViewModel
+    private lateinit var harness: QuickNotesScreenHarness
 
     /**
-     * Sets up a fresh screen instance backed by in-memory note storage.
+     * Sets up a fresh screen instance backed by local mutable state.
      */
     @Before
     fun setUp() {
-        viewModel = NotesViewModel(
-            repository = NoteRepository(InMemoryNoteDao()),
-        )
+        harness = QuickNotesScreenHarness()
 
         composeRule.setContent {
             QuickNotesTheme {
-                QuickNotesApp(viewModel = viewModel)
+                QuickNotesScreen(
+                    state = harness.state,
+                    onTitleChange = harness::onTitleChanged,
+                    onBodyChange = harness::onBodyChanged,
+                    onTagsInputChange = harness::onTagsInputChanged,
+                    onSaveClick = harness::saveNote,
+                    onClearClick = harness::clearEditor,
+                    onNoteCollectionChanged = harness::onNoteCollectionChanged,
+                    onSearchQueryChanged = harness::onSearchQueryChanged,
+                    onSelectedTagChanged = harness::onSelectedTagChanged,
+                    onSortOptionChanged = harness::onSortOptionChanged,
+                    onNoteClick = harness::selectNote,
+                    onArchiveClick = harness::archiveNote,
+                    onRestoreClick = harness::restoreNote,
+                    onDeleteClick = harness::deleteNote,
+                )
             }
         }
     }
@@ -149,5 +166,138 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("save-note-button").performScrollTo()
         composeRule.onNodeWithTag("save-note-button").performClick()
         composeRule.waitForIdle()
+    }
+}
+
+/**
+ * Test-only state container that mimics the screen callbacks without lifecycle or Room.
+ */
+private class QuickNotesScreenHarness {
+    private var storedNotes = emptyList<Note>()
+    private var nextId = 1
+
+    var state by mutableStateOf(NotesScreenState())
+        private set
+
+    fun onTitleChanged(title: String) {
+        state = state.copy(currentTitle = title)
+    }
+
+    fun onBodyChanged(body: String) {
+        state = state.copy(currentBody = body)
+    }
+
+    fun onTagsInputChanged(tagsInput: String) {
+        state = state.copy(currentTagsInput = tagsInput)
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        state = state.copy(searchQuery = query)
+        syncState()
+    }
+
+    fun onSelectedTagChanged(selectedTag: String?) {
+        state = state.copy(selectedTag = selectedTag)
+        syncState()
+    }
+
+    fun onSortOptionChanged(sortOption: NoteSortOption) {
+        state = state.copy(sortOption = sortOption)
+        syncState()
+    }
+
+    fun onNoteCollectionChanged(noteCollection: NoteCollection) {
+        state = state.copy(
+            noteCollection = noteCollection,
+            selectedTag = null,
+        )
+        syncState()
+    }
+
+    fun selectNote(noteId: Int) {
+        val note = storedNotes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
+        state = state.copy(
+            currentTitle = note.title,
+            currentBody = note.body,
+            currentTagsInput = NoteTagFormatter.formatForEditor(note.tags),
+            selectedNoteId = note.id,
+            selectedNoteIsArchived = note.isArchived,
+        )
+    }
+
+    fun clearEditor() {
+        state = state.copy(
+            currentTitle = "",
+            currentBody = "",
+            currentTagsInput = "",
+            selectedNoteId = null,
+            selectedNoteIsArchived = false,
+        )
+    }
+
+    fun saveNote() {
+        val sanitizedTitle = NoteInputSanitizer.sanitizeTitle(state.currentTitle)
+        val sanitizedBody = NoteInputSanitizer.sanitizeBody(state.currentBody)
+        if (sanitizedTitle.isBlank() || sanitizedBody.isBlank()) {
+            return
+        }
+
+        val noteId = state.selectedNoteId ?: nextId++
+        val updatedNote = Note(
+            id = noteId,
+            title = sanitizedTitle,
+            body = sanitizedBody,
+            updatedAt = noteId.toLong(),
+            isArchived = state.selectedNoteIsArchived,
+            tags = NoteTagFormatter.parseInput(state.currentTagsInput),
+        )
+
+        storedNotes = (storedNotes.filterNot { note -> note.id == noteId } + updatedNote)
+        clearEditor()
+        syncState()
+    }
+
+    fun archiveNote(noteId: Int) {
+        storedNotes = storedNotes.map { note ->
+            if (note.id == noteId) note.copy(isArchived = true) else note
+        }
+        if (state.selectedNoteId == noteId) {
+            clearEditor()
+        }
+        syncState()
+    }
+
+    fun restoreNote(noteId: Int) {
+        storedNotes = storedNotes.map { note ->
+            if (note.id == noteId) note.copy(isArchived = false) else note
+        }
+        if (state.selectedNoteId == noteId) {
+            clearEditor()
+        }
+        syncState()
+    }
+
+    fun deleteNote(noteId: Int) {
+        storedNotes = storedNotes.filterNot { note -> note.id == noteId }
+        if (state.selectedNoteId == noteId) {
+            clearEditor()
+        }
+        syncState()
+    }
+
+    private fun syncState() {
+        state = state.copy(
+            notes = NoteListFormatter.formatNotes(
+                notes = storedNotes,
+                noteCollection = state.noteCollection,
+                searchQuery = state.searchQuery,
+                selectedTag = state.selectedTag,
+                sortOption = state.sortOption,
+            ),
+            availableTags = NoteListFormatter.availableTags(
+                notes = storedNotes,
+                noteCollection = state.noteCollection,
+            ),
+        )
     }
 }

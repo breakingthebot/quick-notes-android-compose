@@ -15,6 +15,11 @@
 - Added reusable in-memory DAO and main-dispatcher test helpers so screen tests can exercise real view-model flows without Room or an emulator.
 - Simplified GitHub Actions back to a single reliable JVM test job that runs unit tests and Compose UI tests together with `testDebugUnitTest`.
 
+## 0.8.0 - 2026-07-04
+- Extracted a pure `QuickNotesScreen` composable so the notes UI can be rendered from plain state and callbacks without a `ViewModel`.
+- Kept `QuickNotesApp` as a thin wrapper that binds `NotesViewModel` state and snackbar messages into the reusable screen.
+- Reworked the Robolectric UI tests to drive `QuickNotesScreen` through a local state harness, removing lifecycle and flow timing from the screen-level test path.
+
 ## 0.5.0 - 2026-07-03
 - Added persisted note tags with comma-separated editor input and in-list tag display.
 - Added collection-scoped tag filter chips alongside existing search and sort controls.
