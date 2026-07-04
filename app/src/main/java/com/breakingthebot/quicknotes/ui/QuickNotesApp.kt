@@ -97,7 +97,8 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
                     ),
                 )
                 .padding(innerPadding)
-                .imePadding(),
+                .imePadding()
+                .testTag("notes-screen-list"),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
