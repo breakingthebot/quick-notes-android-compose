@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.3 - 2026-07-04
+- Updated the Robolectric interaction helpers to scroll the shared notes list to off-screen search, tag-filter, collection, and archive/restore controls before interacting with them.
+- Kept the screen-level coverage focused on real user paths inside the single scrollable Compose layout instead of bypassing the list behavior.
+
 ## 0.8.2 - 2026-07-04
 - Replaced the newer Compose assertion helpers in the Robolectric tests with `assertCountEquals` so the screen tests compile against the current UI test dependency set.
 - Kept the card-level test targeting and lazy-list scrolling added in the previous pass, so the coverage still checks the intended off-screen note rows reliably.

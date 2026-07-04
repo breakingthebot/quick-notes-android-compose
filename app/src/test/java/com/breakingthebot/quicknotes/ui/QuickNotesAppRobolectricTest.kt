@@ -103,7 +103,7 @@ class QuickNotesAppRobolectricTest {
         createNote(firstTitle, "Write JVM Compose tests", "work")
         createNote(secondTitle, "Buy apples", "home")
 
-        composeRule.onNodeWithTag("note-search-field").performScrollTo()
+        scrollToNode("note-search-field")
         composeRule.onNodeWithTag("note-search-field").performTextInput("sprint")
 
         scrollToNoteCard(firstTitle)
@@ -123,7 +123,7 @@ class QuickNotesAppRobolectricTest {
         createNote(workTitle, "Write JVM Compose tests", "work")
         createNote(healthTitle, "Morning session", "health")
 
-        composeRule.onNodeWithTag("tag-filter-work").performScrollTo()
+        scrollToNode("tag-filter-work")
         composeRule.onNodeWithTag("tag-filter-work").performClick()
 
         scrollToNoteCard(workTitle)
@@ -141,16 +141,16 @@ class QuickNotesAppRobolectricTest {
 
         createNote(title, "Move this note", "work")
 
-        composeRule.onNodeWithTag("archive-button-$title").performScrollTo()
+        scrollToNode("archive-button-$title")
         composeRule.onNodeWithTag("archive-button-$title").performClick()
-        composeRule.onNodeWithTag("collection-chip-archived").performScrollTo()
+        scrollToNode("collection-chip-archived")
         composeRule.onNodeWithTag("collection-chip-archived").performClick()
         scrollToNoteCard(title)
         composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(1)
 
-        composeRule.onNodeWithTag("restore-button-$title").performScrollTo()
+        scrollToNode("restore-button-$title")
         composeRule.onNodeWithTag("restore-button-$title").performClick()
-        composeRule.onNodeWithTag("collection-chip-active").performScrollTo()
+        scrollToNode("collection-chip-active")
         composeRule.onNodeWithTag("collection-chip-active").performClick()
         scrollToNoteCard(title)
         composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(1)
@@ -184,7 +184,16 @@ class QuickNotesAppRobolectricTest {
      * @param title Note title used in the card test tag.
      */
     private fun scrollToNoteCard(title: String) {
-        composeRule.onNodeWithTag("notes-list").performScrollToNode(hasTestTag("note-card-$title"))
+        scrollToNode("note-card-$title")
+    }
+
+    /**
+     * Scrolls the list until the requested test tag is composed and visible.
+     *
+     * @param tag Target test tag.
+     */
+    private fun scrollToNode(tag: String) {
+        composeRule.onNodeWithTag("notes-list").performScrollToNode(hasTestTag(tag))
         composeRule.waitForIdle()
     }
 }
