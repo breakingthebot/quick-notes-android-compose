@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2 - 2026-07-04
+- Replaced the newer Compose assertion helpers in the Robolectric tests with `assertCountEquals` so the screen tests compile against the current UI test dependency set.
+- Kept the card-level test targeting and lazy-list scrolling added in the previous pass, so the coverage still checks the intended off-screen note rows reliably.
+
 ## 0.8.1 - 2026-07-04
 - Added a `notes-list` test tag to the main `LazyColumn` so Robolectric Compose tests can scroll directly to off-screen note cards before asserting on them.
 - Reworked the screen-level Robolectric assertions to target note-card semantics instead of ambiguous raw text matches shared by list items and filter chips.

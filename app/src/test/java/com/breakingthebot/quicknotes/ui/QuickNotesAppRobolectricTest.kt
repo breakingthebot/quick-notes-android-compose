@@ -8,10 +8,10 @@ package com.breakingthebot.quicknotes.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertDoesNotExist
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -88,8 +88,8 @@ class QuickNotesAppRobolectricTest {
 
         scrollToNoteCard(title)
 
-        composeRule.onNodeWithTag("note-card-$title").assertExists()
-        composeRule.onNodeWithTag("tag-filter-work").assertExists()
+        composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(1)
+        composeRule.onAllNodesWithTag("tag-filter-work").assertCountEquals(1)
     }
 
     /**
@@ -108,8 +108,8 @@ class QuickNotesAppRobolectricTest {
 
         scrollToNoteCard(firstTitle)
 
-        composeRule.onNodeWithTag("note-card-$firstTitle").assertExists()
-        composeRule.onNodeWithTag("note-card-$secondTitle").assertDoesNotExist()
+        composeRule.onAllNodesWithTag("note-card-$firstTitle").assertCountEquals(1)
+        composeRule.onAllNodesWithTag("note-card-$secondTitle").assertCountEquals(0)
     }
 
     /**
@@ -128,8 +128,8 @@ class QuickNotesAppRobolectricTest {
 
         scrollToNoteCard(workTitle)
 
-        composeRule.onNodeWithTag("note-card-$workTitle").assertExists()
-        composeRule.onNodeWithTag("note-card-$healthTitle").assertDoesNotExist()
+        composeRule.onAllNodesWithTag("note-card-$workTitle").assertCountEquals(1)
+        composeRule.onAllNodesWithTag("note-card-$healthTitle").assertCountEquals(0)
     }
 
     /**
@@ -146,14 +146,14 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("collection-chip-archived").performScrollTo()
         composeRule.onNodeWithTag("collection-chip-archived").performClick()
         scrollToNoteCard(title)
-        composeRule.onNodeWithTag("note-card-$title").assertExists()
+        composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(1)
 
         composeRule.onNodeWithTag("restore-button-$title").performScrollTo()
         composeRule.onNodeWithTag("restore-button-$title").performClick()
         composeRule.onNodeWithTag("collection-chip-active").performScrollTo()
         composeRule.onNodeWithTag("collection-chip-active").performClick()
         scrollToNoteCard(title)
-        composeRule.onNodeWithTag("note-card-$title").assertExists()
+        composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(1)
     }
 
     /**
