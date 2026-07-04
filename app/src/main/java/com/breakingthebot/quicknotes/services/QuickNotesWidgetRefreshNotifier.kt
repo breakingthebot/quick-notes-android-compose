@@ -5,10 +5,14 @@
  */
 package com.breakingthebot.quicknotes.services
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.glance.appwidget.updateAll
 import com.breakingthebot.quicknotes.widget.QuickNotesWidget
+import com.breakingthebot.quicknotes.widget.QuickNotesWidgetReceiver
 
 private const val WIDGET_REFRESH_LOG_TAG = "QuickNotesWidget"
 
@@ -28,6 +32,7 @@ class QuickNotesWidgetRefreshNotifier(
     override suspend fun onNotesChanged() {
         runCatching {
             QuickNotesWidget().updateAll(appContext)
+            requestLauncherRefresh()
         }.onFailure { throwable ->
             Log.e(
                 WIDGET_REFRESH_LOG_TAG,
@@ -35,5 +40,22 @@ class QuickNotesWidgetRefreshNotifier(
                 throwable,
             )
         }
+    }
+
+    private fun requestLauncherRefresh() {
+        val appWidgetManager = AppWidgetManager.getInstance(appContext)
+        val widgetComponent = ComponentName(appContext, QuickNotesWidgetReceiver::class.java)
+        val widgetIds = appWidgetManager.getAppWidgetIds(widgetComponent)
+
+        if (widgetIds.isEmpty()) {
+            return
+        }
+
+        val updateIntent = Intent(appContext, QuickNotesWidgetReceiver::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
+        }
+
+        appContext.sendBroadcast(updateIntent)
     }
 }

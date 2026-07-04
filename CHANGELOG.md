@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 - 2026-07-04
+- Fixed the home-screen widget refresh path so note mutations now trigger both Glance updates and an explicit `APPWIDGET_UPDATE` broadcast to installed widget instances.
+- This addresses stale launcher widget content after archiving, restoring, deleting, or saving notes.
+
 ## 0.9.0 - 2026-07-04
 - Added a Jetpack Glance home-screen widget that shows recent active notes and opens the app on tap.
 - Added a Room snapshot query and widget snapshot loader so the widget reads the same persisted note data as the main app.
