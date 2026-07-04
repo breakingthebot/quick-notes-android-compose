@@ -5,6 +5,7 @@
  */
 package com.breakingthebot.quicknotes.widget
 
+import android.content.Intent
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -71,7 +72,9 @@ class QuickNotesWidgetReceiver : GlanceAppWidgetReceiver() {
 @Composable
 private fun QuickNotesWidgetContent(snapshot: QuickNotesWidgetSnapshot) {
     val context = LocalContext.current
-    val openAppAction = actionStartActivity<MainActivity>()
+    val openAppAction = actionStartActivity(
+        Intent(context, MainActivity::class.java),
+    )
 
     Column(
         modifier = GlanceModifier
