@@ -6,12 +6,9 @@
 package com.breakingthebot.quicknotes.ui
 
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertExists
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
@@ -70,8 +67,8 @@ class QuickNotesAppRobolectricTest {
             tags = "work, test",
         )
 
-        composeRule.onNodeWithText(title).assertExists()
-        composeRule.onNodeWithText("#work").assertExists()
+        composeRule.onAllNodesWithText(title).assertCountEquals(1)
+        composeRule.onAllNodesWithText("#work").assertCountEquals(1)
     }
 
     /**
@@ -88,7 +85,7 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("note-search-field").performScrollTo()
         composeRule.onNodeWithTag("note-search-field").performTextInput("sprint")
 
-        composeRule.onNodeWithText(firstTitle).assertExists()
+        composeRule.onAllNodesWithText(firstTitle).assertCountEquals(1)
         composeRule.onAllNodesWithText(secondTitle).assertCountEquals(0)
     }
 
@@ -106,7 +103,7 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("tag-filter-work").performScrollTo()
         composeRule.onNodeWithTag("tag-filter-work").performClick()
 
-        composeRule.onNodeWithText(workTitle).assertExists()
+        composeRule.onAllNodesWithText(workTitle).assertCountEquals(1)
         composeRule.onAllNodesWithText(healthTitle).assertCountEquals(0)
     }
 
@@ -123,13 +120,13 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("archive-button-$title").performClick()
         composeRule.onNodeWithTag("collection-chip-archived").performScrollTo()
         composeRule.onNodeWithTag("collection-chip-archived").performClick()
-        composeRule.onNodeWithText(title).assertExists()
+        composeRule.onAllNodesWithText(title).assertCountEquals(1)
 
         composeRule.onNodeWithTag("restore-button-$title").performScrollTo()
         composeRule.onNodeWithTag("restore-button-$title").performClick()
         composeRule.onNodeWithTag("collection-chip-active").performScrollTo()
         composeRule.onNodeWithTag("collection-chip-active").performClick()
-        composeRule.onNodeWithText(title).assertExists()
+        composeRule.onAllNodesWithText(title).assertCountEquals(1)
     }
 
     /**
