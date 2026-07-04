@@ -57,9 +57,4 @@ jobs:
           api-level: 30
           arch: x86_64
           profile: Nexus 6
-          script: |
-            adb wait-for-device
-            until adb shell service check package | grep "found"; do
-              sleep 5
-            done
-            ./gradlew connectedDebugAndroidTest
+          script: adb wait-for-device && until adb shell service check package | grep "found"; do sleep 5; done && ./gradlew connectedDebugAndroidTest
