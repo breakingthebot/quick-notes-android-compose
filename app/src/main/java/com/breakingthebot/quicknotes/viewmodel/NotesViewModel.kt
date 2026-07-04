@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.breakingthebot.quicknotes.data.NoteRepository
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.services.NotesChangeNotifier
 import com.breakingthebot.quicknotes.ui.NoteCollection
 import com.breakingthebot.quicknotes.ui.NoteSortOption
 import com.breakingthebot.quicknotes.ui.NotesScreenState
@@ -28,9 +29,11 @@ import kotlinx.coroutines.launch
  * View model for note CRUD interactions.
  *
  * @property repository Repository used to persist note changes.
+ * @property notesChangeNotifier Side effects that run after persisted note updates.
  */
 class NotesViewModel(
     private val repository: NoteRepository,
+    private val notesChangeNotifier: NotesChangeNotifier,
 ) : ViewModel() {
     private val editorState = MutableStateFlow(NotesScreenState())
     private val messageEvents = MutableSharedFlow<String>()
@@ -187,9 +190,11 @@ class NotesViewModel(
         viewModelScope.launch {
             if (noteId == null) {
                 repository.addNote(note)
+                notesChangeNotifier.onNotesChanged()
                 emitMessage("Note saved.")
             } else {
                 repository.updateNote(note)
+                notesChangeNotifier.onNotesChanged()
                 emitMessage("Note updated.")
             }
             clearEditor()
@@ -205,6 +210,7 @@ class NotesViewModel(
         val note = screenState.value.notes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
         viewModelScope.launch {
             repository.deleteNote(note)
+            notesChangeNotifier.onNotesChanged()
             if (editorState.value.selectedNoteId == noteId) {
                 clearEditor()
             }
@@ -226,6 +232,7 @@ class NotesViewModel(
                     updatedAt = System.currentTimeMillis(),
                 ),
             )
+            notesChangeNotifier.onNotesChanged()
             if (editorState.value.selectedNoteId == noteId) {
                 clearEditor()
             }
@@ -247,6 +254,7 @@ class NotesViewModel(
                     updatedAt = System.currentTimeMillis(),
                 ),
             )
+            notesChangeNotifier.onNotesChanged()
             if (editorState.value.selectedNoteId == noteId) {
                 clearEditor()
             }

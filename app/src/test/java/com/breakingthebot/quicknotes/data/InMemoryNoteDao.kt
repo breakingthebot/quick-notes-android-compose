@@ -24,6 +24,19 @@ class InMemoryNoteDao : NoteDao {
     override fun observeNotes(): Flow<List<Note>> = notes
 
     /**
+     * Returns the most recent active notes for widget-related tests.
+     *
+     * @param limit Maximum number of notes to return.
+     * @return Recent active notes only.
+     */
+    override suspend fun getRecentActiveNotes(limit: Int): List<Note> {
+        return notes.value
+            .filter { note -> !note.isArchived }
+            .sortedByDescending { note -> note.updatedAt }
+            .take(limit)
+    }
+
+    /**
      * Adds or replaces a note in memory.
      *
      * @param note Note to store.

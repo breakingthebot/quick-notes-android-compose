@@ -28,6 +28,15 @@ interface NoteDao {
     fun observeNotes(): Flow<List<Note>>
 
     /**
+     * Loads the most recent active notes for widget snapshots.
+     *
+     * @param limit Maximum number of active notes to return.
+     * @return Recent active notes ordered by latest update.
+     */
+    @Query("SELECT * FROM notes WHERE isArchived = 0 ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun getRecentActiveNotes(limit: Int): List<Note>
+
+    /**
      * Inserts a new note into storage.
      *
      * @param note Note content to persist.

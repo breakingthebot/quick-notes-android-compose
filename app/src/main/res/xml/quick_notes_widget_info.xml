@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Declares launcher metadata and sizing for the Quick Notes home-screen widget.
+  Connects to: QuickNotesWidgetReceiver and the launcher widget picker.
+  Created: 2026-07-04
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/quick_notes_widget_loading"
+    android:minHeight="180dp"
+    android:minWidth="240dp"
+    android:previewLayout="@layout/quick_notes_widget_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="3"
+    android:targetCellWidth="4"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

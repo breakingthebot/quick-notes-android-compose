@@ -6,4 +6,6 @@
 -->
 <resources>
     <string name="app_name">Quick Notes</string>
+    <string name="widget_title">Quick Notes</string>
+    <string name="widget_description">Shows your latest active notes on the home screen.</string>
 </resources>

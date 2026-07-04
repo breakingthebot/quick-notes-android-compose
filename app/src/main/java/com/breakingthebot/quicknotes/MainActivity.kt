@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.breakingthebot.quicknotes.data.NoteRepository
 import com.breakingthebot.quicknotes.data.QuickNotesDatabase
+import com.breakingthebot.quicknotes.services.QuickNotesWidgetRefreshNotifier
 import com.breakingthebot.quicknotes.ui.QuickNotesApp
 import com.breakingthebot.quicknotes.ui.theme.QuickNotesTheme
 import com.breakingthebot.quicknotes.viewmodel.NotesViewModel
@@ -32,10 +33,14 @@ class MainActivity : ComponentActivity() {
 
         val database = QuickNotesDatabase.getInstance(applicationContext)
         val repository = NoteRepository(database.noteDao())
+        val widgetRefreshNotifier = QuickNotesWidgetRefreshNotifier(applicationContext)
 
         setContent {
             val notesViewModel: NotesViewModel = viewModel(
-                factory = NotesViewModelFactory(repository),
+                factory = NotesViewModelFactory(
+                    repository = repository,
+                    notesChangeNotifier = widgetRefreshNotifier,
+                ),
             )
 
             QuickNotesTheme {

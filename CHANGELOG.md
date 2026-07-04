@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-07-04
+- Added a Jetpack Glance home-screen widget that shows recent active notes and opens the app on tap.
+- Added a Room snapshot query and widget snapshot loader so the widget reads the same persisted note data as the main app.
+- Added a note-mutation notifier so widget instances refresh after save, delete, archive, and restore actions.
+- Added widget-specific formatter tests plus launcher metadata and preview/loading resources.
+
 ## 0.8.3 - 2026-07-04
 - Updated the Robolectric interaction helpers to scroll the shared notes list to off-screen search, tag-filter, collection, and archive/restore controls before interacting with them.
 - Kept the screen-level coverage focused on real user paths inside the single scrollable Compose layout instead of bypassing the list behavior.
