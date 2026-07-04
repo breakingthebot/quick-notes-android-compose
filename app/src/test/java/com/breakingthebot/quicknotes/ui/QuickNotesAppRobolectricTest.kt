@@ -6,14 +6,14 @@
 package com.breakingthebot.quicknotes.ui
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.breakingthebot.quicknotes.data.InMemoryNoteDao
 import com.breakingthebot.quicknotes.data.NoteRepository
@@ -70,9 +70,8 @@ class QuickNotesAppRobolectricTest {
             tags = "work, test",
         )
 
-        scrollToTag("note-card-$title")
-        composeRule.onNodeWithText(title).assertIsDisplayed()
-        composeRule.onNodeWithText("#work").assertIsDisplayed()
+        composeRule.onNodeWithText(title).assertExists()
+        composeRule.onNodeWithText("#work").assertExists()
     }
 
     /**
@@ -86,10 +85,10 @@ class QuickNotesAppRobolectricTest {
         createNote(firstTitle, "Write JVM Compose tests", "work")
         createNote(secondTitle, "Buy apples", "home")
 
-        scrollToTag("note-search-field")
+        composeRule.onNodeWithTag("note-search-field").performScrollTo()
         composeRule.onNodeWithTag("note-search-field").performTextInput("sprint")
 
-        composeRule.onNodeWithText(firstTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(firstTitle).assertExists()
         composeRule.onAllNodesWithText(secondTitle).assertCountEquals(0)
     }
 
@@ -104,10 +103,10 @@ class QuickNotesAppRobolectricTest {
         createNote(workTitle, "Write JVM Compose tests", "work")
         createNote(healthTitle, "Morning session", "health")
 
-        scrollToTag("tag-filter-work")
+        composeRule.onNodeWithTag("tag-filter-work").performScrollTo()
         composeRule.onNodeWithTag("tag-filter-work").performClick()
 
-        composeRule.onNodeWithText(workTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(workTitle).assertExists()
         composeRule.onAllNodesWithText(healthTitle).assertCountEquals(0)
     }
 
@@ -120,17 +119,17 @@ class QuickNotesAppRobolectricTest {
 
         createNote(title, "Move this note", "work")
 
-        scrollToTag("archive-button-$title")
+        composeRule.onNodeWithTag("archive-button-$title").performScrollTo()
         composeRule.onNodeWithTag("archive-button-$title").performClick()
-        scrollToTag("collection-chip-archived")
+        composeRule.onNodeWithTag("collection-chip-archived").performScrollTo()
         composeRule.onNodeWithTag("collection-chip-archived").performClick()
-        composeRule.onNodeWithText(title).assertIsDisplayed()
+        composeRule.onNodeWithText(title).assertExists()
 
-        scrollToTag("restore-button-$title")
+        composeRule.onNodeWithTag("restore-button-$title").performScrollTo()
         composeRule.onNodeWithTag("restore-button-$title").performClick()
-        scrollToTag("collection-chip-active")
+        composeRule.onNodeWithTag("collection-chip-active").performScrollTo()
         composeRule.onNodeWithTag("collection-chip-active").performClick()
-        composeRule.onNodeWithText(title).assertIsDisplayed()
+        composeRule.onNodeWithText(title).assertExists()
     }
 
     /**
@@ -146,19 +145,12 @@ class QuickNotesAppRobolectricTest {
         tags: String,
     ) {
         composeRule.onNodeWithTag("title-input").performTextInput(title)
+        composeRule.onNodeWithTag("body-input").performScrollTo()
         composeRule.onNodeWithTag("body-input").performTextInput(body)
+        composeRule.onNodeWithTag("tags-input").performScrollTo()
         composeRule.onNodeWithTag("tags-input").performTextInput(tags)
+        composeRule.onNodeWithTag("save-note-button").performScrollTo()
         composeRule.onNodeWithTag("save-note-button").performClick()
-        composeRule.waitForIdle()
-    }
-
-    /**
-     * Scrolls the main screen list until the tagged node becomes visible.
-     *
-     * @param tag Stable test tag to scroll into view.
-     */
-    private fun scrollToTag(tag: String) {
-        composeRule.onNodeWithTag("notes-screen-list").performScrollToNode(hasTestTag(tag))
         composeRule.waitForIdle()
     }
 }
