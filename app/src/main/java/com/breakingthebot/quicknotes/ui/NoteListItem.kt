@@ -107,6 +107,7 @@ fun NoteListItem(
             containerColor = backgroundColor,
             contentColor = contentColor,
         ),
+        border = if (note.color == NoteColor.DEFAULT) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
     ) {
         itemBitmap?.let { bitmap ->
             androidx.compose.foundation.Image(

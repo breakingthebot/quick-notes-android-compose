@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.1 - 2026-07-05
+- Refactored screen header summary to be completely borderless and styled with theme primary accents, removing heavy visual card container boxes.
+- Updated all browser filter cards (Folders, Tags, Date filters) to use outlined, clean surface containers with primary themed titles instead of heavy solid grey surfaceVariant backgrounds.
+- Updated Note Color Mapper to map default notes to crisp surface/onSurface theme colors with a subtle outline border instead of heavy grey background blocks.
+
 ## 2.2.0 - 2026-07-05
 - Added Camera Picture Taking and Gallery Image selection support for Image Notes.
 - Created `ImageHelper` utility for generating FileProvider camera capture URIs, copying gallery media to secure private app storage, and decoding bitmaps in non-blocking background coroutines.

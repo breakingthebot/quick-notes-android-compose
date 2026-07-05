@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -224,29 +225,30 @@ fun QuickNotesScreen(
 
 @Composable
 private fun ScreenSummary(state: NotesScreenState) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = if (state.noteCollection == NoteCollection.ACTIVE) {
-                    "Capture what matters"
-                } else {
-                    "Archived for later"
-                },
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = summaryMessage(state = state),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = if (state.noteCollection == NoteCollection.ACTIVE) {
+                "Capture what matters"
+            } else if (state.noteCollection == NoteCollection.ARCHIVED) {
+                "Archived for later"
+            } else {
+                "Trash bin"
+            },
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.semantics { heading() },
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = summaryMessage(state = state),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -259,13 +261,15 @@ private fun BrowseNotesCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().testTag("browse-notes-card"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Browse notes",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
             )
             Text(
                 text = "Switch collections, search, or change list order.",
@@ -315,7 +319,8 @@ private fun FoldersFilterCard(
 
     Card(
         modifier = Modifier.fillMaxWidth().testTag("folders-filter-card"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -327,6 +332,7 @@ private fun FoldersFilterCard(
                     text = "Folders",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 androidx.compose.material3.TextButton(
                     onClick = { showFolderManager = true },
@@ -385,7 +391,8 @@ private fun TagsFilterCard(
     if (state.availableTags.isNotEmpty()) {
         Card(
             modifier = Modifier.fillMaxWidth().testTag("tags-filter-card"),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(
@@ -397,6 +404,7 @@ private fun TagsFilterCard(
                         text = "Filter by tag",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                     androidx.compose.material3.TextButton(
                         onClick = { showTagManager = true },
@@ -452,7 +460,8 @@ private fun FiltersAndSortCard(
 
     Card(
         modifier = Modifier.fillMaxWidth().testTag("filters-and-sort-card"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             val dateRangeLabel = remember(state.dateFilterOption, state.customStartDate, state.customEndDate) {
@@ -468,6 +477,7 @@ private fun FiltersAndSortCard(
                 text = "Filter by date$dateRangeLabel",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -642,8 +652,9 @@ private fun NoteEditorCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             val editorTitle = if (state.selectedNoteId == null) "Create note" else "Edit note"
@@ -651,6 +662,7 @@ private fun NoteEditorCard(
                 text = editorTitle,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.semantics { heading() },
             )
             Text(
