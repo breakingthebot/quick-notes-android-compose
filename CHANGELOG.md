@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0 - 2026-07-05
+- Added Markdown Rich Text Previews allowing bold (`**text**`), italic (`*text*`), and headers (`#`, `##`) to render as styled rich text on note preview cards.
+- Created `NoteMarkdownParser` to parse plain text into styled Compose `AnnotatedString` structures.
+- Wrapped standard note details text previews and checklist task text previews inside the markdown styling parser.
+- Added comprehensive unit tests inside `NoteMarkdownParserTest` and UI integration test `markdown_rendersStylizedNotes` to verify styling parsing and end-to-end rendering correctness.
+
 ## 1.3.0 - 2026-07-05
 - Added Note Colors / Visual Categories allowing notes to be styled with custom background colors (Mint, Peach, Lavender, Blue).
 - Implemented `NoteColorMapper` to map color category selections to theme-compliant, accessible foreground/background color tokens for both light and dark systems.

@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
@@ -262,6 +263,21 @@ class QuickNotesAppRobolectricTest {
         val note = harness.state.notes.firstOrNull { it.title == title }
         org.junit.Assert.assertNotNull(note)
         org.junit.Assert.assertEquals(NoteColor.MINT, note?.color)
+    }
+
+    /**
+     * Verifies that markdown tags are parsed and display stripped text on note cards.
+     */
+    @Test
+    fun markdown_rendersStylizedNotes() {
+        val title = "markdown-note"
+        createNote(title, "Hello **bold** and *italic*", "work")
+
+        // Scroll to compose the note card in the viewport
+        scrollToNode("note-card-$title")
+
+        // Assert the note card exists and renders parsed/stripped text
+        composeRule.onNodeWithText("Hello bold and italic").assertExists()
     }
 
     /**

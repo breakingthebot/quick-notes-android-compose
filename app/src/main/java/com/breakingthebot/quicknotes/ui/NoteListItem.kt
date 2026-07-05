@@ -36,6 +36,7 @@ import com.breakingthebot.quicknotes.model.NoteColor
 import com.breakingthebot.quicknotes.ui.theme.NoteColorMapper
 import com.breakingthebot.quicknotes.util.TimeFormatter
 import com.breakingthebot.quicknotes.util.NoteChecklistParser
+import com.breakingthebot.quicknotes.util.NoteMarkdownParser
 
 /**
  * Card for an individual note preview.
@@ -123,7 +124,7 @@ fun NoteListItem(
                                 )
                             )
                             Text(
-                                text = item.text,
+                                text = NoteMarkdownParser.parse(item.text),
                                 style = MaterialTheme.typography.bodyMedium,
                                 textDecoration = if (item.isChecked) TextDecoration.LineThrough else TextDecoration.None,
                                 color = if (item.isChecked) contentColor.copy(alpha = 0.6f) else contentColor
@@ -133,7 +134,7 @@ fun NoteListItem(
                 }
             } else {
                 Text(
-                    text = note.body,
+                    text = NoteMarkdownParser.parse(note.body),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
                     color = contentColor,
