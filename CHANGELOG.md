@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.0 - 2026-07-05
+- Added Search Match Text Highlighting, which styles matching search query terms within note preview titles, body markdown texts, and checklist items.
+- Created `SearchHighlighter` utility to parse case-insensitive query matches and append standard `SpanStyle` highlight backdrops onto Compose `AnnotatedString` objects.
+- Added unit test `searchHighlighter_addsHighlightSpans` and UI integration test `searchHighlighting_rendersHighlightSpansInSemantics` to verify text span style ranges in note card semantics.
+
 ## 1.8.0 - 2026-07-05
 - Added Export / Share Notes allowing notes to be exported globally through Android's native system share sheet.
 - Styled actions row on note cards to be horizontally scrollable using `horizontalScroll(rememberScrollState())` to prevent layout wrapping on narrow devices.

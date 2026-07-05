@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.ButtonDefaults
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.util.SearchHighlighter
 import com.breakingthebot.quicknotes.model.NoteColor
 import com.breakingthebot.quicknotes.ui.theme.NoteColorMapper
 import com.breakingthebot.quicknotes.util.TimeFormatter
@@ -62,6 +63,7 @@ fun NoteListItem(
     onPinClick: () -> Unit,
     onChecklistItemToggle: (Int) -> Unit,
     onShareClick: () -> Unit,
+    searchQuery: String,
 ) {
     val backgroundColor = NoteColorMapper.getBackgroundColor(note.color)
     val contentColor = NoteColorMapper.getOnBackgroundColor(note.color)
@@ -90,8 +92,12 @@ fun NoteListItem(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
+                val titleText = if (note.isPinned) "📌 " + note.title else note.title
+                val highlightedTitle = remember(titleText, searchQuery) {
+                    SearchHighlighter.highlight(titleText, searchQuery)
+                }
                 Text(
-                    text = if (note.isPinned) "📌 " + note.title else note.title,
+                    text = highlightedTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -126,8 +132,11 @@ fun NoteListItem(
                                     uncheckedColor = contentColor.copy(alpha = 0.6f)
                                 )
                             )
+                            val highlightedChecklistText = remember(item.text, searchQuery) {
+                                SearchHighlighter.highlight(NoteMarkdownParser.parse(item.text), searchQuery)
+                            }
                             Text(
-                                text = NoteMarkdownParser.parse(item.text),
+                                text = highlightedChecklistText,
                                 style = MaterialTheme.typography.bodyMedium,
                                 textDecoration = if (item.isChecked) TextDecoration.LineThrough else TextDecoration.None,
                                 color = if (item.isChecked) contentColor.copy(alpha = 0.6f) else contentColor
@@ -136,8 +145,11 @@ fun NoteListItem(
                     }
                 }
             } else {
+                val highlightedBodyText = remember(note.body, searchQuery) {
+                    SearchHighlighter.highlight(NoteMarkdownParser.parse(note.body), searchQuery)
+                }
                 Text(
-                    text = NoteMarkdownParser.parse(note.body),
+                    text = highlightedBodyText,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
                     color = contentColor,

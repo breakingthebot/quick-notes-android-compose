@@ -447,6 +447,53 @@ class QuickNotesAppRobolectricTest {
     }
 
     /**
+     * Verifies that the SearchHighlighter utility parses and applies highlight span styles.
+     */
+    @Test
+    fun searchHighlighter_addsHighlightSpans() {
+        val original = "Clean the kitchen counter"
+        val query = "kitchen"
+        val highlighted = com.breakingthebot.quicknotes.util.SearchHighlighter.highlight(original, query)
+
+        org.junit.Assert.assertEquals(original, highlighted.text)
+        org.junit.Assert.assertEquals(1, highlighted.spanStyles.size)
+        val styleRange = highlighted.spanStyles.first()
+        org.junit.Assert.assertEquals(10, styleRange.start)
+        org.junit.Assert.assertEquals(17, styleRange.end)
+        org.junit.Assert.assertEquals(
+            androidx.compose.ui.graphics.Color(0xFFFFD54F),
+            styleRange.item.background
+        )
+    }
+
+    /**
+     * Verifies that searching for a term highlights matches inside the note card semantics tree.
+     */
+    @Test
+    fun searchHighlighting_rendersHighlightSpansInSemantics() {
+        val title = "cooking"
+        createNote(title, "let us cook something delicious", "food")
+
+        // Input search query
+        scrollToNode("note-search-field")
+        composeRule.onNodeWithTag("note-search-field").performTextInput("cook")
+        composeRule.waitForIdle()
+
+        // Verify note card exists and retrieve semantics text attributes
+        scrollToNode("note-card-$title")
+        val semanticsNode = composeRule.onNodeWithTag("note-card-$title").fetchSemanticsNode()
+        val texts = semanticsNode.config[androidx.compose.ui.semantics.SemanticsProperties.Text]
+
+        // Assert that at least one of the merged texts contains a search highlight span background
+        val hasHighlight = texts.any { annotated ->
+            annotated.spanStyles.any { spanRange ->
+                spanRange.item.background == androidx.compose.ui.graphics.Color(0xFFFFD54F)
+            }
+        }
+        org.junit.Assert.assertTrue(hasHighlight)
+    }
+
+    /**
      * Creates a note through the public screen UI.
      *
      * @param title Note title.

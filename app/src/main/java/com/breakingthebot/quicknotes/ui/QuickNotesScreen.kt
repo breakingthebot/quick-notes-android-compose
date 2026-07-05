@@ -644,6 +644,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.NotesListContent(
                 onPinClick = { onPinClick(note.id) },
                 onChecklistItemToggle = { itemIndex -> onChecklistItemToggle(note.id, itemIndex) },
                 onShareClick = { onShareClick(note.id) },
+                searchQuery = state.searchQuery,
             )
         }
     }
