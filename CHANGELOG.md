@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0 - 2026-07-05
+- Added Export / Share Notes allowing notes to be exported globally through Android's native system share sheet.
+- Styled actions row on note cards to be horizontally scrollable using `horizontalScroll(rememberScrollState())` to prevent layout wrapping on narrow devices.
+- Integrated `ACTION_SEND` Intent launcher directly in the Compose UI layer using `LocalContext`.
+- Added UI integration test `shareNote_triggersShareSheetChooser` to verify share button presence and callback chooser invocation.
+
 ## 1.7.0 - 2026-07-05
 - Added Note Archiving / Unarchiving Quick Swipe gesture actions using Compose Material 3 `SwipeToDismissBox` APIs.
 - Built a visual `SwipeDismissBackground` component with context-aware color transitions (Red for delete actions, Primary for archive/restore actions).

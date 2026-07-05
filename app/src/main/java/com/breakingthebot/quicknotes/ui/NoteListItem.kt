@@ -6,6 +6,8 @@
 package com.breakingthebot.quicknotes.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -59,6 +61,7 @@ fun NoteListItem(
     onDeleteClick: () -> Unit,
     onPinClick: () -> Unit,
     onChecklistItemToggle: (Int) -> Unit,
+    onShareClick: () -> Unit,
 ) {
     val backgroundColor = NoteColorMapper.getBackgroundColor(note.color)
     val contentColor = NoteColorMapper.getOnBackgroundColor(note.color)
@@ -180,6 +183,9 @@ fun NoteListItem(
             val buttonBorder = BorderStroke(1.dp, contentColor.copy(alpha = 0.4f))
 
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (noteCollection == NoteCollection.TRASH) {
@@ -239,6 +245,16 @@ fun NoteListItem(
                         border = buttonBorder,
                     ) {
                         Text(text = "Delete")
+                    }
+                    OutlinedButton(
+                        onClick = onShareClick,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .testTag("share-button-${note.title}"),
+                        colors = buttonColors,
+                        border = buttonBorder,
+                    ) {
+                        Text(text = "Share")
                     }
                 }
             }

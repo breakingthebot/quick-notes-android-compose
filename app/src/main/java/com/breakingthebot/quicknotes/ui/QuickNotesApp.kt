@@ -57,5 +57,16 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         onReminderTimeChange = viewModel::onReminderTimeChanged,
         onRenameTag = viewModel::renameTag,
         onDeleteTag = viewModel::deleteTag,
+        onShareClick = { noteId ->
+            val note = screenState.notes.firstOrNull { it.id == noteId }
+            if (note != null) {
+                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, note.title)
+                    putExtra(android.content.Intent.EXTRA_TEXT, "${note.title}\n\n${note.body}")
+                }
+                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Note"))
+            }
+        },
     )
 }

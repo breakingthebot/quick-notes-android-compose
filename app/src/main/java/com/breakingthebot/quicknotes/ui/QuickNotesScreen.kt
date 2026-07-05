@@ -108,6 +108,7 @@ fun QuickNotesScreen(
     onReminderTimeChange: (Long?) -> Unit,
     onRenameTag: (String, String) -> Unit,
     onDeleteTag: (String) -> Unit,
+    onShareClick: (Int) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -179,6 +180,7 @@ fun QuickNotesScreen(
                 onDeleteClick = onDeleteClick,
                 onPinClick = onPinClick,
                 onChecklistItemToggle = onChecklistItemToggle,
+                onShareClick = onShareClick,
             )
         }
     }
@@ -587,6 +589,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.NotesListContent(
     onDeleteClick: (Int) -> Unit,
     onPinClick: (Int) -> Unit,
     onChecklistItemToggle: (Int, Int) -> Unit,
+    onShareClick: (Int) -> Unit,
 ) {
     if (state.notes.isEmpty()) {
         item {
@@ -640,6 +643,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.NotesListContent(
                 onDeleteClick = { onDeleteClick(note.id) },
                 onPinClick = { onPinClick(note.id) },
                 onChecklistItemToggle = { itemIndex -> onChecklistItemToggle(note.id, itemIndex) },
+                onShareClick = { onShareClick(note.id) },
             )
         }
     }

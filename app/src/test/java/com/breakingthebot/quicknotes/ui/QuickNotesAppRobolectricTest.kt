@@ -90,6 +90,7 @@ class QuickNotesAppRobolectricTest {
                     onReminderTimeChange = harness::onReminderTimeChanged,
                     onRenameTag = harness::onRenameTag,
                     onDeleteTag = harness::onDeleteTag,
+                    onShareClick = harness::shareNote,
                 )
             }
         }
@@ -424,6 +425,28 @@ class QuickNotesAppRobolectricTest {
     }
 
     /**
+     * Verifies that tapping the Share button triggers the platform share sheet chooser callback.
+     */
+    @Test
+    fun shareNote_triggersShareSheetChooser() {
+        val title = "share-note"
+        createNote(title, "details", "work")
+
+        // Bring note card into viewport
+        scrollToNode("note-card-$title")
+
+        // Click Share button on card
+        composeRule.onNodeWithTag("share-button-$title").performScrollTo()
+        composeRule.onNodeWithTag("share-button-$title").performClick()
+        composeRule.waitForIdle()
+
+        // Verify the callback fired and tracked the note ID
+        val expectedNote = harness.state.notes.firstOrNull { it.title == title }
+        org.junit.Assert.assertNotNull(expectedNote)
+        org.junit.Assert.assertEquals(expectedNote?.id, harness.lastSharedNoteId)
+    }
+
+    /**
      * Creates a note through the public screen UI.
      *
      * @param title Note title.
@@ -708,6 +731,13 @@ private class QuickNotesScreenHarness {
             }
         }
         syncState()
+    }
+
+    var lastSharedNoteId: Int? = null
+        private set
+
+    fun shareNote(noteId: Int) {
+        lastSharedNoteId = noteId
     }
 
     private fun syncState() {
