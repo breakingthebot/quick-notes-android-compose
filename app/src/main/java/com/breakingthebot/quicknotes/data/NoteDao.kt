@@ -48,7 +48,7 @@ interface NoteDao {
      * @param note Note content to persist.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(note: Note)
+    suspend fun insert(note: Note): Long
 
     /**
      * Updates an existing note.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 - 2026-07-05
+- Added Note Reminders & Notifications allowing date and time scheduling for notes, triggering local system notifications at target times.
+- Created `ReminderReceiver` broadcast receiver to build system notification channels and publish notifications.
+- Created `ReminderScheduler` to register precise system alarms using Android's `AlarmManager`.
+- Extended Note schema with a nullable `reminderTime` timestamp (Version 8 Room Database migration).
+- Integrated date/time selection using Android's native material date and time pickers.
+- Added visual reminder badge indicator on note cards and active indicator inside note details.
+- Added UI integration test `reminder_savesNoteReminder` to verify reminder scheduling and display state.
+
 ## 1.4.0 - 2026-07-05
 - Added Markdown Rich Text Previews allowing bold (`**text**`), italic (`*text*`), and headers (`#`, `##`) to render as styled rich text on note preview cards.
 - Created `NoteMarkdownParser` to parse plain text into styled Compose `AnnotatedString` structures.

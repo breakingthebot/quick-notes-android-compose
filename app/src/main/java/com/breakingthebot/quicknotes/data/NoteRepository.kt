@@ -28,8 +28,8 @@ class NoteRepository(
      *
      * @param note Note to insert.
      */
-    suspend fun addNote(note: Note) {
-        noteDao.insert(note)
+    suspend fun addNote(note: Note): Long {
+        return noteDao.insert(note)
     }
 
     /**

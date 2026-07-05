@@ -8,6 +8,7 @@ package com.breakingthebot.quicknotes.ui
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -30,13 +31,15 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         }
     }
 
+    val context = LocalContext.current
+
     QuickNotesScreen(
         state = screenState,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         onTitleChange = viewModel::onTitleChanged,
         onBodyChange = viewModel::onBodyChanged,
         onTagsInputChange = viewModel::onTagsInputChanged,
-        onSaveClick = viewModel::saveNote,
+        onSaveClick = { viewModel.saveNote(context) },
         onClearClick = viewModel::clearEditor,
         onNoteCollectionChanged = viewModel::onNoteCollectionChanged,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
@@ -45,11 +48,12 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         onNoteClick = viewModel::selectNote,
         onArchiveClick = viewModel::archiveNote,
         onRestoreClick = viewModel::restoreNote,
-        onDeleteClick = viewModel::deleteNote,
-        onEmptyTrashClick = viewModel::emptyTrash,
+        onDeleteClick = { noteId -> viewModel.deleteNote(noteId, context) },
+        onEmptyTrashClick = { viewModel.emptyTrash(context) },
         onPinClick = viewModel::togglePinNote,
         onIsChecklistChange = viewModel::onIsChecklistChanged,
         onChecklistItemToggle = viewModel::toggleChecklistItem,
         onNoteColorChange = viewModel::onNoteColorChanged,
+        onReminderTimeChange = viewModel::onReminderTimeChanged,
     )
 }

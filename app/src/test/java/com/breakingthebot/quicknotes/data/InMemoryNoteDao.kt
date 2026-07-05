@@ -48,7 +48,7 @@ class InMemoryNoteDao : NoteDao {
      *
      * @param note Note to store.
      */
-    override suspend fun insert(note: Note) {
+    override suspend fun insert(note: Note): Long {
         val storedNote = if (note.id == 0) {
             note.copy(id = nextId++)
         } else {
@@ -57,6 +57,7 @@ class InMemoryNoteDao : NoteDao {
         }
         notes.value = (notes.value.filterNot { existingNote -> existingNote.id == storedNote.id } + storedNote)
             .sortedByDescending { existingNote -> existingNote.updatedAt }
+        return storedNote.id.toLong()
     }
 
     /**

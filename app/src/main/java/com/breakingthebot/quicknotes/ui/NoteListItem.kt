@@ -140,6 +140,26 @@ fun NoteListItem(
                     color = contentColor,
                 )
             }
+            val reminderText = remember(note.reminderTime) {
+                if (note.reminderTime != null) {
+                    val sdf = java.text.SimpleDateFormat("EEE, MMM d 'at' h:mm a", java.util.Locale.getDefault())
+                    sdf.format(java.util.Date(note.reminderTime))
+                } else {
+                    null
+                }
+            }
+            if (reminderText != null) {
+                Row(
+                    modifier = Modifier.padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "⏰ Reminder: $reminderText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.9f)
+                    )
+                }
+            }
             if (note.tags.isNotEmpty()) {
                 Row(
                     modifier = Modifier.padding(bottom = 16.dp),

@@ -113,4 +113,21 @@ object DatabaseMigrations {
                  )
              }
         }
+
+    /**
+     * Adds the reminderTime timestamp column while preserving existing notes.
+     */
+    val migration7To8: Migration =
+        object : Migration(7, 8) {
+            /**
+             * Updates the schema from version 7 to version 8.
+             *
+             * @param database Raw SQLite database being migrated.
+             */
+             override fun migrate(database: SupportSQLiteDatabase) {
+                 database.execSQL(
+                     "ALTER TABLE notes ADD COLUMN reminderTime INTEGER",
+                 )
+             }
+        }
 }

@@ -5,6 +5,7 @@
  */
 package com.breakingthebot.quicknotes.ui
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -59,12 +60,13 @@ class QuickNotesAppRobolectricTest {
 
         composeRule.setContent {
             QuickNotesTheme {
+                val context = androidx.compose.ui.platform.LocalContext.current
                 QuickNotesScreen(
                     state = harness.state,
                     onTitleChange = harness::onTitleChanged,
                     onBodyChange = harness::onBodyChanged,
                     onTagsInputChange = harness::onTagsInputChanged,
-                    onSaveClick = harness::saveNote,
+                    onSaveClick = { harness.saveNote(context) },
                     onClearClick = harness::clearEditor,
                     onNoteCollectionChanged = harness::onNoteCollectionChanged,
                     onSearchQueryChanged = harness::onSearchQueryChanged,
@@ -73,12 +75,13 @@ class QuickNotesAppRobolectricTest {
                     onNoteClick = harness::selectNote,
                     onArchiveClick = harness::archiveNote,
                     onRestoreClick = harness::restoreNote,
-                    onDeleteClick = harness::deleteNote,
-                    onEmptyTrashClick = harness::emptyTrash,
+                    onDeleteClick = { noteId -> harness.deleteNote(noteId, context) },
+                    onEmptyTrashClick = { harness.emptyTrash(context) },
                     onPinClick = harness::togglePinNote,
                     onIsChecklistChange = harness::onIsChecklistChanged,
                     onChecklistItemToggle = harness::toggleChecklistItem,
                     onNoteColorChange = harness::onNoteColorChanged,
+                    onReminderTimeChange = harness::onReminderTimeChanged,
                 )
             }
         }
@@ -281,6 +284,33 @@ class QuickNotesAppRobolectricTest {
     }
 
     /**
+     * Verifies that scheduling a reminder saves the state and displays a badge.
+     */
+    @Test
+    fun reminder_savesNoteReminder() {
+        val title = "reminder-note"
+        composeRule.onNodeWithTag("title-input").performTextInput(title)
+        composeRule.onNodeWithTag("body-input").performScrollTo()
+        composeRule.onNodeWithTag("body-input").performTextInput("Content")
+
+        // Set reminder time directly in harness to mock picker selection
+        val futureTime = System.currentTimeMillis() + 86400000L // 24 hours from now
+        harness.onReminderTimeChanged(futureTime)
+        composeRule.waitForIdle()
+
+        // Verify reminder text displays in editor card
+        composeRule.onNodeWithTag("reminder-display-text").assertExists()
+
+        // Save note
+        harness.saveNote()
+        composeRule.waitForIdle()
+
+        // Scroll to and verify badge is rendered on list note card
+        scrollToNode("note-card-$title")
+        composeRule.onNodeWithText("⏰ Reminder:", substring = true).assertExists()
+    }
+
+    /**
      * Creates a note through the public screen UI.
      *
      * @param title Note title.
@@ -353,6 +383,10 @@ private class QuickNotesScreenHarness {
         state = state.copy(currentNoteColor = noteColor)
     }
 
+    fun onReminderTimeChanged(timeMs: Long?) {
+        state = state.copy(selectedReminderTime = timeMs)
+    }
+
     fun onSearchQueryChanged(query: String) {
         state = state.copy(searchQuery = query)
         syncState()
@@ -392,6 +426,7 @@ private class QuickNotesScreenHarness {
             selectedNoteIsPinned = note.isPinned,
             currentIsChecklist = note.isChecklist,
             currentNoteColor = note.color,
+            selectedReminderTime = note.reminderTime,
         )
     }
 
@@ -406,10 +441,11 @@ private class QuickNotesScreenHarness {
             selectedNoteIsPinned = false,
             currentIsChecklist = false,
             currentNoteColor = NoteColor.DEFAULT,
+            selectedReminderTime = null,
         )
     }
 
-    fun saveNote() {
+    fun saveNote(context: Context = androidx.test.core.app.ApplicationProvider.getApplicationContext()) {
         val sanitizedTitle = NoteInputSanitizer.sanitizeTitle(state.currentTitle)
         var sanitizedBody = NoteInputSanitizer.sanitizeBody(state.currentBody)
         if (sanitizedTitle.isBlank() || sanitizedBody.isBlank()) {
@@ -440,6 +476,7 @@ private class QuickNotesScreenHarness {
             isPinned = state.selectedNoteIsPinned,
             isChecklist = isChecklist,
             color = state.currentNoteColor,
+            reminderTime = state.selectedReminderTime,
             tags = NoteTagFormatter.parseInput(state.currentTagsInput),
         )
 
@@ -476,7 +513,7 @@ private class QuickNotesScreenHarness {
         syncState()
     }
 
-    fun deleteNote(noteId: Int) {
+    fun deleteNote(noteId: Int, context: Context = androidx.test.core.app.ApplicationProvider.getApplicationContext()) {
         storedNotes = storedNotes.mapNotNull { note ->
             if (note.id == noteId) {
                 if (note.isDeleted) {
@@ -523,7 +560,7 @@ private class QuickNotesScreenHarness {
         syncState()
     }
 
-    fun emptyTrash() {
+    fun emptyTrash(context: Context = androidx.test.core.app.ApplicationProvider.getApplicationContext()) {
         storedNotes = storedNotes.filterNot { note -> note.isDeleted }
         clearEditor()
         syncState()

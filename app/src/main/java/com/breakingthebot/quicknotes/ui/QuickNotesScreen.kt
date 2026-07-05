@@ -37,12 +37,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import com.breakingthebot.quicknotes.model.NoteColor
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -95,6 +98,7 @@ fun QuickNotesScreen(
     onIsChecklistChange: (Boolean) -> Unit,
     onChecklistItemToggle: (Int, Int) -> Unit,
     onNoteColorChange: (NoteColor) -> Unit,
+    onReminderTimeChange: (Long?) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -143,6 +147,7 @@ fun QuickNotesScreen(
                     onClearClick = onClearClick,
                     onIsChecklistChange = onIsChecklistChange,
                     onNoteColorChange = onNoteColorChange,
+                    onReminderTimeChange = onReminderTimeChange,
                 )
             }
             item {
@@ -320,6 +325,7 @@ private fun NoteEditorCard(
     onClearClick: () -> Unit,
     onIsChecklistChange: (Boolean) -> Unit,
     onNoteColorChange: (NoteColor) -> Unit,
+    onReminderTimeChange: (Long?) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -412,6 +418,89 @@ private fun NoteEditorCard(
                             selectedContainerColor = colorValue,
                         )
                     )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            val context = LocalContext.current
+            val currentReminder = state.selectedReminderTime
+            val calendar = remember(currentReminder) {
+                java.util.Calendar.getInstance().apply {
+                    if (currentReminder != null) {
+                        timeInMillis = currentReminder
+                    }
+                }
+            }
+            val onPickDateTime = {
+                android.app.DatePickerDialog(
+                    context,
+                    { _, year, month, dayOfMonth ->
+                        calendar.set(java.util.Calendar.YEAR, year)
+                        calendar.set(java.util.Calendar.MONTH, month)
+                        calendar.set(java.util.Calendar.DAY_OF_MONTH, dayOfMonth)
+
+                        android.app.TimePickerDialog(
+                            context,
+                            { _, hourOfDay, minute ->
+                                calendar.set(java.util.Calendar.HOUR_OF_DAY, hourOfDay)
+                                calendar.set(java.util.Calendar.MINUTE, minute)
+                                calendar.set(java.util.Calendar.SECOND, 0)
+                                calendar.set(java.util.Calendar.MILLISECOND, 0)
+                                onReminderTimeChange(calendar.timeInMillis)
+                            },
+                            calendar.get(java.util.Calendar.HOUR_OF_DAY),
+                            calendar.get(java.util.Calendar.MINUTE),
+                            false
+                        ).show()
+                    },
+                    calendar.get(java.util.Calendar.YEAR),
+                    calendar.get(java.util.Calendar.MONTH),
+                    calendar.get(java.util.Calendar.DAY_OF_MONTH)
+                ).show()
+            }
+            val reminderText = remember(currentReminder) {
+                if (currentReminder != null) {
+                    val sdf = java.text.SimpleDateFormat("EEE, MMM d 'at' h:mm a", java.util.Locale.getDefault())
+                    sdf.format(java.util.Date(currentReminder))
+                } else {
+                    null
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (reminderText != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "⏰ Reminder: $reminderText",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.testTag("reminder-display-text")
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        androidx.compose.material3.IconButton(
+                            onClick = { onReminderTimeChange(null) },
+                            modifier = Modifier.size(24.dp).testTag("clear-reminder-button")
+                        ) {
+                            Text(
+                                text = "✕",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Red,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = onPickDateTime,
+                        modifier = Modifier.testTag("set-reminder-button")
+                    ) {
+                        Text(text = "⏰ Set Reminder")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))

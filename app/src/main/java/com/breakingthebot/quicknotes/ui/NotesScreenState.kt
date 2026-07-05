@@ -36,4 +36,5 @@ data class NotesScreenState(
     val availableTags: List<String> = emptyList(),
     val sortOption: NoteSortOption = NoteSortOption.NEWEST,
     val noteCollection: NoteCollection = NoteCollection.ACTIVE,
+    val selectedReminderTime: Long? = null,
 )

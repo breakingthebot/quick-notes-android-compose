@@ -5,6 +5,7 @@
  */
 package com.breakingthebot.quicknotes.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.breakingthebot.quicknotes.data.NoteRepository
@@ -19,6 +20,7 @@ import com.breakingthebot.quicknotes.util.NoteListFormatter
 import com.breakingthebot.quicknotes.util.NoteTagFormatter
 import com.breakingthebot.quicknotes.util.NoteChecklistParser
 import com.breakingthebot.quicknotes.util.ChecklistItem
+import com.breakingthebot.quicknotes.util.ReminderScheduler
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -118,6 +120,15 @@ class NotesViewModel(
     }
 
     /**
+     * Updates the scheduled reminder timestamp for the note.
+     *
+     * @param timeMs Reminder epoch timestamp, or null to clear.
+     */
+    fun onReminderTimeChanged(timeMs: Long?) {
+        editorState.value = editorState.value.copy(selectedReminderTime = timeMs)
+    }
+
+    /**
      * Updates the search query used to filter the visible note list.
      *
      * @param query New search field value.
@@ -177,6 +188,7 @@ class NotesViewModel(
             selectedNoteIsPinned = selectedNote.isPinned,
             currentIsChecklist = selectedNote.isChecklist,
             currentNoteColor = selectedNote.color,
+            selectedReminderTime = selectedNote.reminderTime,
         )
     }
 
@@ -194,13 +206,14 @@ class NotesViewModel(
             selectedNoteIsPinned = false,
             currentIsChecklist = false,
             currentNoteColor = NoteColor.DEFAULT,
+            selectedReminderTime = null,
         )
     }
 
     /**
      * Inserts or updates a note after validating editor content.
      */
-    fun saveNote() {
+    fun saveNote(context: Context) {
         val sanitizedTitle = NoteInputSanitizer.sanitizeTitle(editorState.value.currentTitle)
         val sanitizedBody = NoteInputSanitizer.sanitizeBody(editorState.value.currentBody)
         val parsedTags = NoteTagFormatter.parseInput(editorState.value.currentTagsInput)
@@ -225,6 +238,7 @@ class NotesViewModel(
         }
 
         val noteId = editorState.value.selectedNoteId
+        val reminderTime = editorState.value.selectedReminderTime
         val note = Note(
             id = noteId ?: 0,
             title = sanitizedTitle,
@@ -236,19 +250,31 @@ class NotesViewModel(
             isPinned = editorState.value.selectedNoteIsPinned,
             isChecklist = isChecklist,
             color = editorState.value.currentNoteColor,
+            reminderTime = reminderTime,
         )
 
         viewModelScope.launch {
-            if (noteId == null) {
-                repository.addNote(note)
-                notesChangeNotifier.onNotesChanged()
+            if (note.id == 0) {
+                val insertedId = repository.addNote(note).toInt()
+                if (reminderTime != null && reminderTime > System.currentTimeMillis()) {
+                    ReminderScheduler.scheduleReminder(context, insertedId, note.title, note.body, reminderTime)
+                }
                 emitMessage("Note saved.")
             } else {
                 repository.updateNote(note)
-                notesChangeNotifier.onNotesChanged()
+                if (reminderTime != null) {
+                    if (reminderTime > System.currentTimeMillis()) {
+                        ReminderScheduler.scheduleReminder(context, note.id, note.title, note.body, reminderTime)
+                    } else {
+                        ReminderScheduler.cancelReminder(context, note.id)
+                    }
+                } else {
+                    ReminderScheduler.cancelReminder(context, note.id)
+                }
                 emitMessage("Note updated.")
             }
             clearEditor()
+            notesChangeNotifier.onNotesChanged()
         }
     }
 
@@ -258,11 +284,12 @@ class NotesViewModel(
      *
      * @param noteId Identifier of the note to remove.
      */
-    fun deleteNote(noteId: Int) {
+    fun deleteNote(noteId: Int, context: Context) {
         val note = screenState.value.notes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
         viewModelScope.launch {
             if (note.isDeleted) {
                 repository.deleteNote(note)
+                ReminderScheduler.cancelReminder(context, note.id)
                 emitMessage("Note permanently deleted.")
             } else {
                 repository.updateNote(
@@ -271,6 +298,7 @@ class NotesViewModel(
                         updatedAt = System.currentTimeMillis(),
                     ),
                 )
+                ReminderScheduler.cancelReminder(context, note.id)
                 emitMessage("Note moved to trash.")
             }
             notesChangeNotifier.onNotesChanged()
@@ -382,8 +410,12 @@ class NotesViewModel(
     /**
      * Permanently deletes all notes currently marked as deleted (in Trash).
      */
-    fun emptyTrash() {
+    fun emptyTrash(context: Context) {
+        val deletedNotes = screenState.value.notes.filter { it.isDeleted }
         viewModelScope.launch {
+            deletedNotes.forEach { note ->
+                ReminderScheduler.cancelReminder(context, note.id)
+            }
             repository.emptyTrash()
             notesChangeNotifier.onNotesChanged()
             clearEditor()
