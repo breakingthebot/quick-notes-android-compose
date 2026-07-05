@@ -24,6 +24,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import com.breakingthebot.quicknotes.model.Note
 import com.breakingthebot.quicknotes.model.NoteColor
 import com.breakingthebot.quicknotes.ui.theme.QuickNotesTheme
@@ -361,6 +364,63 @@ class QuickNotesAppRobolectricTest {
 
         // Verify the tag ideas is removed globally
         composeRule.onNodeWithTag("note-card-$title").assert(hasText("#ideas", substring = true).not())
+    }
+
+    /**
+     * Verifies swiping left and right on note items triggers archive, restore, and delete operations.
+     */
+    @Test
+    fun swipe_actions_archiveAndTrashNotes() {
+        val title = "swipe-note"
+        createNote(title, "details", "work")
+
+        // Bring note card into viewport
+        scrollToNode("note-card-$title")
+
+        // Swipe Left to archive
+        composeRule.onNodeWithTag("note-card-$title").performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+
+        // Verify no longer in active list
+        composeRule.onNodeWithTag("note-card-$title").assertDoesNotExist()
+
+        // Switch to archive collection
+        composeRule.onNodeWithTag("collection-chip-archived").performClick()
+        composeRule.waitForIdle()
+
+        // Verify it is in archived list
+        scrollToNode("note-card-$title")
+        composeRule.onNodeWithTag("note-card-$title").assertExists()
+
+        // Swipe Left on archive card to restore
+        composeRule.onNodeWithTag("note-card-$title").performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+
+        // Verify no longer in archive list
+        composeRule.onNodeWithTag("note-card-$title").assertDoesNotExist()
+
+        // Switch back to active collection
+        composeRule.onNodeWithTag("collection-chip-active").performClick()
+        composeRule.waitForIdle()
+
+        // Verify it is back in active list
+        scrollToNode("note-card-$title")
+        composeRule.onNodeWithTag("note-card-$title").assertExists()
+
+        // Swipe Right to move to Trash
+        composeRule.onNodeWithTag("note-card-$title").performTouchInput { swipeRight() }
+        composeRule.waitForIdle()
+
+        // Verify no longer in active list
+        composeRule.onNodeWithTag("note-card-$title").assertDoesNotExist()
+
+        // Switch to trash collection
+        composeRule.onNodeWithTag("collection-chip-trash").performClick()
+        composeRule.waitForIdle()
+
+        // Verify it is in trash list
+        scrollToNode("note-card-$title")
+        composeRule.onNodeWithTag("note-card-$title").assertExists()
     }
 
     /**

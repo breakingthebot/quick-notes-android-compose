@@ -35,6 +35,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -599,17 +602,46 @@ private fun androidx.compose.foundation.lazy.LazyListScope.NotesListContent(
         return
     }
 
-    items(items = state.notes, key = { note -> note.id }) { note ->
-        NoteListItem(
-            note = note,
-            noteCollection = state.noteCollection,
-            onClick = { onNoteClick(note.id) },
-            onArchiveClick = { onArchiveClick(note.id) },
-            onRestoreClick = { onRestoreClick(note.id) },
-            onDeleteClick = { onDeleteClick(note.id) },
-            onPinClick = { onPinClick(note.id) },
-            onChecklistItemToggle = { itemIndex -> onChecklistItemToggle(note.id, itemIndex) },
+    items(state.notes, key = { it.id }) { note ->
+        val dismissState = rememberSwipeToDismissBoxState(
+            confirmValueChange = { dismissValue ->
+                when (dismissValue) {
+                    SwipeToDismissBoxValue.StartToEnd -> {
+                        onDeleteClick(note.id)
+                        true
+                    }
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        if (note.isDeleted || note.isArchived) {
+                            onRestoreClick(note.id)
+                        } else {
+                            onArchiveClick(note.id)
+                        }
+                        true
+                    }
+                    else -> false
+                }
+            }
         )
+
+        SwipeToDismissBox(
+            state = dismissState,
+            backgroundContent = { SwipeDismissBackground(dismissState = dismissState) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .testTag("swipe-dismiss-box-${note.id}")
+        ) {
+            NoteListItem(
+                note = note,
+                noteCollection = state.noteCollection,
+                onClick = { onNoteClick(note.id) },
+                onArchiveClick = { onArchiveClick(note.id) },
+                onRestoreClick = { onRestoreClick(note.id) },
+                onDeleteClick = { onDeleteClick(note.id) },
+                onPinClick = { onPinClick(note.id) },
+                onChecklistItemToggle = { itemIndex -> onChecklistItemToggle(note.id, itemIndex) },
+            )
+        }
     }
 }
 
@@ -874,6 +906,44 @@ private fun TagManagerDialog(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SwipeDismissBackground(dismissState: androidx.compose.material3.SwipeToDismissBoxState) {
+    val direction = dismissState.dismissDirection
+    val color = when (direction) {
+        SwipeToDismissBoxValue.StartToEnd -> Color.Red.copy(alpha = 0.8f)
+        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+        else -> Color.Transparent
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(MaterialTheme.shapes.medium)
+            .background(color)
+            .padding(horizontal = 20.dp),
+        contentAlignment = when (direction) {
+            SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+            else -> Alignment.CenterEnd
+        }
+    ) {
+        if (direction == SwipeToDismissBoxValue.StartToEnd) {
+            Text(
+                text = "🗑️ Trash",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        } else if (direction == SwipeToDismissBoxValue.EndToStart) {
+            Text(
+                text = "📁 Move",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }

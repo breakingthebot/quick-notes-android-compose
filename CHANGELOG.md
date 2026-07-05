@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0 - 2026-07-05
+- Added Note Archiving / Unarchiving Quick Swipe gesture actions using Compose Material 3 `SwipeToDismissBox` APIs.
+- Built a visual `SwipeDismissBackground` component with context-aware color transitions (Red for delete actions, Primary for archive/restore actions).
+- Configured swipe behaviors dynamically based on the current collection context:
+  - Swipe Left (EndToStart): Archives active notes, and restores archived/trashed notes.
+  - Swipe Right (StartToEnd): Soft-deletes active/archived notes, and permanently deletes trashed notes.
+- Added UI integration test `swipe_actions_archiveAndTrashNotes` to verify swipe-to-archive, swipe-to-restore, and swipe-to-delete flows.
+
 ## 1.6.0 - 2026-07-05
 - Added Tag Manager (Rename / Delete) providing global tag management features across all saved notes.
 - Implemented `renameTag` globally inside `NotesViewModel` to safely batch update tag names across all notes and filter duplicate tags.
