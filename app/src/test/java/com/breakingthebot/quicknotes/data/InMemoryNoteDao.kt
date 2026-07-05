@@ -31,9 +31,16 @@ class InMemoryNoteDao : NoteDao {
      */
     override suspend fun getRecentActiveNotes(limit: Int): List<Note> {
         return notes.value
-            .filter { note -> !note.isArchived }
+            .filter { note -> !note.isArchived && !note.isDeleted }
             .sortedByDescending { note -> note.updatedAt }
             .take(limit)
+    }
+
+    /**
+     * Permanently removes all deleted notes from memory.
+     */
+    override suspend fun emptyTrash() {
+        notes.value = notes.value.filterNot { note -> note.isDeleted }
     }
 
     /**

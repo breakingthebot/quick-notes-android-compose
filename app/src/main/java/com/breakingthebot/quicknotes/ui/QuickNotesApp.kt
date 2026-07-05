@@ -46,5 +46,9 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         onArchiveClick = viewModel::archiveNote,
         onRestoreClick = viewModel::restoreNote,
         onDeleteClick = viewModel::deleteNote,
+        onEmptyTrashClick = viewModel::emptyTrash,
+        onPinClick = viewModel::togglePinNote,
+        onIsChecklistChange = viewModel::onIsChecklistChanged,
+        onChecklistItemToggle = viewModel::toggleChecklistItem,
     )
 }

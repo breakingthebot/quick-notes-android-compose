@@ -113,4 +113,82 @@ class NoteListFormatterTest {
 
         assertEquals(listOf("health", "home"), availableTags)
     }
+
+    /**
+     * Confirms trash collection only includes deleted notes.
+     */
+    @Test
+    fun formatNotes_scopesResultsToTrashCollection() {
+        val notesWithDeleted = notes + Note(id = 4, title = "Trash Note", body = "Old info", updatedAt = 50L, isDeleted = true, tags = listOf("old"))
+        val formattedNotes = NoteListFormatter.formatNotes(
+            notes = notesWithDeleted,
+            noteCollection = NoteCollection.TRASH,
+            searchQuery = "",
+            selectedTag = null,
+            sortOption = NoteSortOption.NEWEST,
+        )
+
+        assertEquals(listOf(4), formattedNotes.map { note -> note.id })
+    }
+
+    /**
+     * Confirms active and archived collections exclude deleted notes.
+     */
+    @Test
+    fun formatNotes_excludesDeletedNotesFromActiveAndArchive() {
+        val notesWithDeleted = notes + Note(id = 4, title = "Trash Note", body = "Old info", updatedAt = 500L, isDeleted = true)
+        val activeNotes = NoteListFormatter.formatNotes(
+            notes = notesWithDeleted,
+            noteCollection = NoteCollection.ACTIVE,
+            searchQuery = "",
+            selectedTag = null,
+            sortOption = NoteSortOption.NEWEST,
+        )
+        val archivedNotes = NoteListFormatter.formatNotes(
+            notes = notesWithDeleted,
+            noteCollection = NoteCollection.ARCHIVED,
+            searchQuery = "",
+            selectedTag = null,
+            sortOption = NoteSortOption.NEWEST,
+        )
+
+        assertEquals(listOf(1, 3), activeNotes.map { note -> note.id })
+        assertEquals(listOf(2), archivedNotes.map { note -> note.id })
+    }
+
+    /**
+     * Confirms available tags are collected from the trash collection only.
+     */
+    @Test
+    fun availableTags_returnsTrashCollectionScopedTags() {
+        val notesWithDeleted = notes + Note(id = 4, title = "Trash Note", body = "Old info", updatedAt = 50L, isDeleted = true, tags = listOf("old"))
+        val availableTags = NoteListFormatter.availableTags(
+            notes = notesWithDeleted,
+            noteCollection = NoteCollection.TRASH,
+        )
+
+        assertEquals(listOf("old"), availableTags)
+    }
+
+    /**
+     * Confirms that pinned notes are always sorted to the top of the list first.
+     */
+    @Test
+    fun formatNotes_sortsPinnedNotesToTopFirst() {
+        val notesWithPinned = listOf(
+            Note(id = 1, title = "Shopping", body = "Buy apples", updatedAt = 300L, tags = listOf("home")),
+            Note(id = 2, title = "Ideas", body = "Android search", updatedAt = 100L, isPinned = true, tags = listOf("ideas")),
+            Note(id = 3, title = "Workout", body = "Morning run", updatedAt = 200L, tags = listOf("health")),
+        )
+        val formattedNotes = NoteListFormatter.formatNotes(
+            notes = notesWithPinned,
+            noteCollection = NoteCollection.ACTIVE,
+            searchQuery = "",
+            selectedTag = null,
+            sortOption = NoteSortOption.NEWEST,
+        )
+
+        // Note 2 (pinned) should come first, even though Note 1 is newer (300L > 100L)
+        assertEquals(listOf(2, 1, 3), formattedNotes.map { note -> note.id })
+    }
 }

@@ -18,34 +18,42 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.breakingthebot.quicknotes.model.Note
 import com.breakingthebot.quicknotes.util.TimeFormatter
+import com.breakingthebot.quicknotes.util.NoteChecklistParser
 
 /**
  * Card for an individual note preview.
  *
  * @param note Note data to render.
- * @param isArchivedCollection Whether the card is being rendered in the archived list.
+ * @param noteCollection Which collection this item belongs to.
  * @param onClick Callback for selecting the note for editing.
  * @param onArchiveClick Callback for archiving the note.
  * @param onRestoreClick Callback for restoring the note.
  * @param onDeleteClick Callback for deleting the note.
+ * @param onPinClick Callback for pinning/unpinning the note.
  */
 @Composable
 fun NoteListItem(
     note: Note,
-    isArchivedCollection: Boolean,
+    noteCollection: NoteCollection,
     onClick: () -> Unit,
     onArchiveClick: () -> Unit,
     onRestoreClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onPinClick: () -> Unit,
+    onChecklistItemToggle: (Int) -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -54,7 +62,13 @@ fun NoteListItem(
             .semantics {
                 contentDescription = "Note titled ${note.title}"
             }
-            .clickable(onClick = onClick),
+            .let {
+                if (noteCollection != NoteCollection.TRASH) {
+                    it.clickable(onClick = onClick)
+                } else {
+                    it
+                }
+            },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
@@ -65,7 +79,7 @@ fun NoteListItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = note.title,
+                    text = if (note.isPinned) "📌 " + note.title else note.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -79,11 +93,38 @@ fun NoteListItem(
                 modifier = Modifier.padding(top = 10.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
-            Text(
-                text = note.body,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
-            )
+            if (note.isChecklist) {
+                val items = remember(note.body) { NoteChecklistParser.parse(note.body) }
+                Column(
+                    modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items.forEachIndexed { index, item ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = item.isChecked,
+                                onCheckedChange = { onChecklistItemToggle(index) },
+                                modifier = Modifier.testTag("checklist-item-checkbox-${note.title}-$index")
+                            )
+                            Text(
+                                text = item.text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textDecoration = if (item.isChecked) TextDecoration.LineThrough else TextDecoration.None,
+                                color = if (item.isChecked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    text = note.body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
+                )
+            }
             if (note.tags.isNotEmpty()) {
                 Row(
                     modifier = Modifier.padding(bottom = 16.dp),
@@ -101,27 +142,54 @@ fun NoteListItem(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
-                    onClick = if (isArchivedCollection) onRestoreClick else onArchiveClick,
-                    modifier = Modifier
-                        .defaultMinSize(minHeight = 48.dp)
-                        .testTag(
-                            if (isArchivedCollection) {
-                                "restore-button-${note.title}"
-                            } else {
-                                "archive-button-${note.title}"
-                            },
-                        ),
-                ) {
-                    Text(text = if (isArchivedCollection) "Restore" else "Archive")
-                }
-                OutlinedButton(
-                    onClick = onDeleteClick,
-                    modifier = Modifier
-                        .defaultMinSize(minHeight = 48.dp)
-                        .testTag("delete-button-${note.title}"),
-                ) {
-                    Text(text = "Delete")
+                if (noteCollection == NoteCollection.TRASH) {
+                    OutlinedButton(
+                        onClick = onRestoreClick,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .testTag("restore-button-${note.title}"),
+                    ) {
+                        Text(text = "Restore")
+                    }
+                    OutlinedButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .testTag("delete-button-${note.title}"),
+                    ) {
+                        Text(text = "Delete permanently")
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = onPinClick,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .testTag(if (note.isPinned) "unpin-button-${note.title}" else "pin-button-${note.title}"),
+                    ) {
+                        Text(text = if (note.isPinned) "Unpin" else "Pin")
+                    }
+                    OutlinedButton(
+                        onClick = if (noteCollection == NoteCollection.ARCHIVED) onRestoreClick else onArchiveClick,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .testTag(
+                                if (noteCollection == NoteCollection.ARCHIVED) {
+                                    "restore-button-${note.title}"
+                                } else {
+                                    "archive-button-${note.title}"
+                                },
+                            ),
+                    ) {
+                        Text(text = if (noteCollection == NoteCollection.ARCHIVED) "Restore" else "Archive")
+                    }
+                    OutlinedButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .testTag("delete-button-${note.title}"),
+                    ) {
+                        Text(text = "Delete")
+                    }
                 }
             }
         }

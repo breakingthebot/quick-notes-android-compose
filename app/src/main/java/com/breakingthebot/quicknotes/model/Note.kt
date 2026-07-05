@@ -26,4 +26,7 @@ data class Note(
     val updatedAt: Long,
     val isArchived: Boolean = false,
     val tags: List<String> = emptyList(),
+    val isDeleted: Boolean = false,
+    val isPinned: Boolean = false,
+    val isChecklist: Boolean = false,
 )

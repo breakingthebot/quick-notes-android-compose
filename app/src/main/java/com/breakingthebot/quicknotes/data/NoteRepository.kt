@@ -49,4 +49,11 @@ class NoteRepository(
     suspend fun deleteNote(note: Note) {
         noteDao.delete(note)
     }
+
+    /**
+     * Permanently empties all deleted notes from database.
+     */
+    suspend fun emptyTrash() {
+        noteDao.emptyTrash()
+    }
 }

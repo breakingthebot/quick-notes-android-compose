@@ -34,8 +34,9 @@ object NoteListFormatter {
         val normalizedQuery = searchQuery.trim().lowercase(Locale.getDefault())
         val scopedNotes = notes.filter { note ->
             when (noteCollection) {
-                NoteCollection.ACTIVE -> !note.isArchived
-                NoteCollection.ARCHIVED -> note.isArchived
+                NoteCollection.ACTIVE -> !note.isDeleted && !note.isArchived
+                NoteCollection.ARCHIVED -> !note.isDeleted && note.isArchived
+                NoteCollection.TRASH -> note.isDeleted
             }
         }
         val tagFilteredNotes = if (selectedTag.isNullOrBlank()) {
@@ -55,9 +56,18 @@ object NoteListFormatter {
         }
 
         return when (sortOption) {
-            NoteSortOption.NEWEST -> filteredNotes.sortedByDescending { note -> note.updatedAt }
-            NoteSortOption.OLDEST -> filteredNotes.sortedBy { note -> note.updatedAt }
-            NoteSortOption.TITLE -> filteredNotes.sortedBy { note -> note.title.lowercase(Locale.getDefault()) }
+            NoteSortOption.NEWEST -> filteredNotes.sortedWith(
+                compareByDescending<Note> { it.isPinned }
+                    .thenByDescending { it.updatedAt }
+            )
+            NoteSortOption.OLDEST -> filteredNotes.sortedWith(
+                compareByDescending<Note> { it.isPinned }
+                    .thenBy { it.updatedAt }
+            )
+            NoteSortOption.TITLE -> filteredNotes.sortedWith(
+                compareByDescending<Note> { it.isPinned }
+                    .thenBy { it.title.lowercase(Locale.getDefault()) }
+            )
         }
     }
 
@@ -75,8 +85,9 @@ object NoteListFormatter {
         return notes.asSequence()
             .filter { note ->
                 when (noteCollection) {
-                    NoteCollection.ACTIVE -> !note.isArchived
-                    NoteCollection.ARCHIVED -> note.isArchived
+                    NoteCollection.ACTIVE -> !note.isDeleted && !note.isArchived
+                    NoteCollection.ARCHIVED -> !note.isDeleted && note.isArchived
+                    NoteCollection.TRASH -> note.isDeleted
                 }
             }
             .flatMap { note -> note.tags.asSequence() }

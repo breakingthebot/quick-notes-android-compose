@@ -33,8 +33,14 @@ interface NoteDao {
      * @param limit Maximum number of active notes to return.
      * @return Recent active notes ordered by latest update.
      */
-    @Query("SELECT * FROM notes WHERE isArchived = 0 ORDER BY updatedAt DESC LIMIT :limit")
+    @Query("SELECT * FROM notes WHERE isArchived = 0 AND isDeleted = 0 ORDER BY updatedAt DESC LIMIT :limit")
     suspend fun getRecentActiveNotes(limit: Int): List<Note>
+
+    /**
+     * Permanently removes all notes marked as deleted.
+     */
+    @Query("DELETE FROM notes WHERE isDeleted = 1")
+    suspend fun emptyTrash()
 
     /**
      * Inserts a new note into storage.

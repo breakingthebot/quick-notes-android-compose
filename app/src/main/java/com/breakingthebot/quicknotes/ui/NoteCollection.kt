@@ -15,4 +15,5 @@ enum class NoteCollection(
 ) {
     ACTIVE("Active"),
     ARCHIVED("Archived"),
+    TRASH("Trash"),
 }

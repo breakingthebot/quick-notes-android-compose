@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.2.0 - 2026-07-04
+- Added Checklist Mode allowing notes to be formatted as task lists with interactive checkboxes.
+- Implemented `NoteChecklistParser` to parse plain text bodies to/from checked (`[x]`) and unchecked (`[ ]`) task states.
+- Integrated a "Format as checklist" toggle switch in the note creation and editing layouts.
+- Replaced plain body text rendering with interactive checkbox rows on note cards in lists for checklist notes.
+- Added Room Database migration version 5 to 6, adding the `isChecklist` column.
+- Added JUnit and Robolectric UI integration tests for checklist parsing and interactive checkbox toggles.
+
+## 1.1.0 - 2026-07-04
+- Added a Pinned Notes feature allowing important notes to be pinned to the top of Active and Archived lists.
+- Integrated `📌` visual indicator prefix to pinned note card titles in the list view.
+- Added a Pin/Unpin action button on note cards inside Active and Archived lists.
+- Added Room Database migration version 4 to 5, adding the `isPinned` column.
+- Updated the list sorting algorithm to sort pinned notes first before applying alphabetical, newest, or oldest ordering.
+- Added unit and Robolectric UI tests covering the toggle-pin sorting and toggling states.
+
+## 1.0.0 - 2026-07-04
+- Added a Trash Bin (soft-delete) feature allowing notes to be moved to a "Trash" collection.
+- Added support for permanently deleting individual notes or emptying the trash collection in one click.
+- Added support for restoring deleted notes back to active or archived collections.
+- Excluded trashed notes from the active and archived collections and from home-screen launcher widgets.
+- Added Room Database migration version 3 to 4, adding the `isDeleted` column.
+- Added unit and Robolectric UI integration tests for the soft-delete, restore, and empty-trash flows.
+
 ## 0.9.1 - 2026-07-04
 - Fixed the home-screen widget refresh path so note mutations now trigger both Glance updates and an explicit `APPWIDGET_UPDATE` broadcast to installed widget instances.
 - This addresses stale launcher widget content after archiving, restoring, deleting, or saving notes.

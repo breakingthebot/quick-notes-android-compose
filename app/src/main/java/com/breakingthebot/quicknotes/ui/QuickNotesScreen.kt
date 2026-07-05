@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -81,6 +83,10 @@ fun QuickNotesScreen(
     onArchiveClick: (Int) -> Unit,
     onRestoreClick: (Int) -> Unit,
     onDeleteClick: (Int) -> Unit,
+    onEmptyTrashClick: () -> Unit,
+    onPinClick: (Int) -> Unit,
+    onIsChecklistChange: (Boolean) -> Unit,
+    onChecklistItemToggle: (Int, Int) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -127,6 +133,7 @@ fun QuickNotesScreen(
                     onTagsInputChange = onTagsInputChange,
                     onSaveClick = onSaveClick,
                     onClearClick = onClearClick,
+                    onIsChecklistChange = onIsChecklistChange,
                 )
             }
             item {
@@ -136,6 +143,7 @@ fun QuickNotesScreen(
                     onSearchQueryChanged = onSearchQueryChanged,
                     onSelectedTagChanged = onSelectedTagChanged,
                     onSortOptionChanged = onSortOptionChanged,
+                    onEmptyTrashClick = onEmptyTrashClick,
                 )
             }
             NotesListContent(
@@ -144,6 +152,8 @@ fun QuickNotesScreen(
                 onArchiveClick = onArchiveClick,
                 onRestoreClick = onRestoreClick,
                 onDeleteClick = onDeleteClick,
+                onPinClick = onPinClick,
+                onChecklistItemToggle = onChecklistItemToggle,
             )
         }
     }
@@ -184,6 +194,7 @@ private fun NoteListControls(
     onSearchQueryChanged: (String) -> Unit,
     onSelectedTagChanged: (String?) -> Unit,
     onSortOptionChanged: (NoteSortOption) -> Unit,
+    onEmptyTrashClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -270,6 +281,22 @@ private fun NoteListControls(
                     )
                 }
             }
+            if (state.noteCollection == NoteCollection.TRASH && state.notes.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onEmptyTrashClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 48.dp)
+                        .testTag("empty-trash-button"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                ) {
+                    Text(text = "Empty trash")
+                }
+            }
         }
     }
 }
@@ -282,6 +309,7 @@ private fun NoteEditorCard(
     onTagsInputChange: (String) -> Unit,
     onSaveClick: () -> Unit,
     onClearClick: () -> Unit,
+    onIsChecklistChange: (Boolean) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -318,6 +346,22 @@ private fun NoteEditorCard(
                     .testTag("title-input"),
                 singleLine = true,
             )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Format as checklist",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Switch(
+                    checked = state.currentIsChecklist,
+                    onCheckedChange = onIsChecklistChange,
+                    modifier = Modifier.testTag("checklist-mode-switch"),
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = state.currentBody,
@@ -374,6 +418,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.NotesListContent(
     onArchiveClick: (Int) -> Unit,
     onRestoreClick: (Int) -> Unit,
     onDeleteClick: (Int) -> Unit,
+    onPinClick: (Int) -> Unit,
+    onChecklistItemToggle: (Int, Int) -> Unit,
 ) {
     if (state.notes.isEmpty()) {
         item {
@@ -392,11 +438,13 @@ private fun androidx.compose.foundation.lazy.LazyListScope.NotesListContent(
     items(items = state.notes, key = { note -> note.id }) { note ->
         NoteListItem(
             note = note,
-            isArchivedCollection = state.noteCollection == NoteCollection.ARCHIVED,
+            noteCollection = state.noteCollection,
             onClick = { onNoteClick(note.id) },
             onArchiveClick = { onArchiveClick(note.id) },
             onRestoreClick = { onRestoreClick(note.id) },
             onDeleteClick = { onDeleteClick(note.id) },
+            onPinClick = { onPinClick(note.id) },
+            onChecklistItemToggle = { itemIndex -> onChecklistItemToggle(note.id, itemIndex) },
         )
     }
 }

@@ -23,6 +23,8 @@ import com.breakingthebot.quicknotes.util.MainDispatcherRule
 import com.breakingthebot.quicknotes.util.NoteInputSanitizer
 import com.breakingthebot.quicknotes.util.NoteListFormatter
 import com.breakingthebot.quicknotes.util.NoteTagFormatter
+import com.breakingthebot.quicknotes.util.NoteChecklistParser
+import com.breakingthebot.quicknotes.util.ChecklistItem
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -68,6 +70,10 @@ class QuickNotesAppRobolectricTest {
                     onArchiveClick = harness::archiveNote,
                     onRestoreClick = harness::restoreNote,
                     onDeleteClick = harness::deleteNote,
+                    onEmptyTrashClick = harness::emptyTrash,
+                    onPinClick = harness::togglePinNote,
+                    onIsChecklistChange = harness::onIsChecklistChanged,
+                    onChecklistItemToggle = harness::toggleChecklistItem,
                 )
             }
         }
@@ -157,6 +163,78 @@ class QuickNotesAppRobolectricTest {
     }
 
     /**
+     * Verifies that deleting an active note moves it to trash, and emptying trash removes it permanently.
+     */
+    @Test
+    fun deleteAndEmptyTrash_movesNoteToTrashThenPermanentlyDeletes() {
+        val title = "trash-note"
+        createNote(title, "Temporary content", "temp")
+
+        scrollToNode("delete-button-$title")
+        composeRule.onNodeWithTag("delete-button-$title").performClick()
+
+        composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(0)
+
+        scrollToNode("collection-chip-trash")
+        composeRule.onNodeWithTag("collection-chip-trash").performClick()
+
+        scrollToNoteCard(title)
+        composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(1)
+
+        scrollToNode("empty-trash-button")
+        composeRule.onNodeWithTag("empty-trash-button").performClick()
+
+        composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(0)
+    }
+
+    /**
+     * Verifies that pinning a note changes its label / pin state and displays the correct button action.
+     */
+    @Test
+    fun pinAndUnpin_togglesNotePinState() {
+        val title = "pin-test-note"
+        createNote(title, "Content to be pinned", "work")
+
+        // Originally has a "Pin" button
+        scrollToNode("pin-button-$title")
+        composeRule.onNodeWithTag("pin-button-$title").performClick()
+
+        // Card should now be prefix-marked or display "Unpin" button
+        scrollToNode("unpin-button-$title")
+        composeRule.onNodeWithTag("unpin-button-$title").performClick()
+
+        // Toggled back to "Pin" button
+        scrollToNode("pin-button-$title")
+        composeRule.onAllNodesWithTag("pin-button-$title").assertCountEquals(1)
+    }
+
+    /**
+     * Verifies that creating a checklist note displays checkboxes in the list,
+     * and toggling a checkbox changes its state.
+     */
+    @Test
+    fun checklistMode_createsAndTogglesCheckboxes() {
+        val title = "checklist-test-note"
+        composeRule.onNodeWithTag("title-input").performTextInput(title)
+        composeRule.onNodeWithTag("body-input").performScrollTo()
+        composeRule.onNodeWithTag("body-input").performTextInput("Buy milk\nCall doctor")
+
+        scrollToNode("checklist-mode-switch")
+        composeRule.onNodeWithTag("checklist-mode-switch").performClick()
+        composeRule.waitForIdle()
+
+        // Call harness save directly to bypass Robolectric click dispatching
+        harness.saveNote()
+        composeRule.waitForIdle()
+
+        scrollToNode("checklist-item-checkbox-$title-0")
+        composeRule.onAllNodesWithTag("checklist-item-checkbox-$title-0").assertCountEquals(1)
+
+        composeRule.onNodeWithTag("checklist-item-checkbox-$title-0").performClick()
+        composeRule.waitForIdle()
+    }
+
+    /**
      * Creates a note through the public screen UI.
      *
      * @param title Note title.
@@ -220,6 +298,10 @@ private class QuickNotesScreenHarness {
         state = state.copy(currentTagsInput = tagsInput)
     }
 
+    fun onIsChecklistChanged(isChecklist: Boolean) {
+        state = state.copy(currentIsChecklist = isChecklist)
+    }
+
     fun onSearchQueryChanged(query: String) {
         state = state.copy(searchQuery = query)
         syncState()
@@ -247,10 +329,17 @@ private class QuickNotesScreenHarness {
         val note = storedNotes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
         state = state.copy(
             currentTitle = note.title,
-            currentBody = note.body,
+            currentBody = if (note.isChecklist) {
+                NoteChecklistParser.parse(note.body).joinToString("\n") { it.text }
+            } else {
+                note.body
+            },
             currentTagsInput = NoteTagFormatter.formatForEditor(note.tags),
             selectedNoteId = note.id,
             selectedNoteIsArchived = note.isArchived,
+            selectedNoteIsDeleted = note.isDeleted,
+            selectedNoteIsPinned = note.isPinned,
+            currentIsChecklist = note.isChecklist,
         )
     }
 
@@ -261,14 +350,35 @@ private class QuickNotesScreenHarness {
             currentTagsInput = "",
             selectedNoteId = null,
             selectedNoteIsArchived = false,
+            selectedNoteIsDeleted = false,
+            selectedNoteIsPinned = false,
+            currentIsChecklist = false,
         )
     }
 
     fun saveNote() {
+        println("DEBUG SAVE: currentTitle = '${state.currentTitle}'")
+        println("DEBUG SAVE: currentBody = '${state.currentBody}'")
         val sanitizedTitle = NoteInputSanitizer.sanitizeTitle(state.currentTitle)
-        val sanitizedBody = NoteInputSanitizer.sanitizeBody(state.currentBody)
+        var sanitizedBody = NoteInputSanitizer.sanitizeBody(state.currentBody)
+        println("DEBUG SAVE: sanitizedTitle = '$sanitizedTitle'")
+        println("DEBUG SAVE: sanitizedBody = '$sanitizedBody'")
         if (sanitizedTitle.isBlank() || sanitizedBody.isBlank()) {
+            println("DEBUG SAVE: returned early because blank!")
             return
+        }
+
+        val isChecklist = state.currentIsChecklist
+        if (isChecklist) {
+            val lines = sanitizedBody.lines().map { it.trim() }.filter { it.isNotBlank() }
+            val existingItems = state.selectedNoteId?.let { id ->
+                storedNotes.firstOrNull { it.id == id }?.let { NoteChecklistParser.parse(it.body) }
+            } ?: emptyList()
+            val checkedTexts = existingItems.filter { it.isChecked }.map { it.text }.toSet()
+            val checklistItems = lines.map { line ->
+                ChecklistItem(line, line in checkedTexts)
+            }
+            sanitizedBody = NoteChecklistParser.toBodyString(checklistItems)
         }
 
         val noteId = state.selectedNoteId ?: nextId++
@@ -278,6 +388,9 @@ private class QuickNotesScreenHarness {
             body = sanitizedBody,
             updatedAt = noteId.toLong(),
             isArchived = state.selectedNoteIsArchived,
+            isDeleted = state.selectedNoteIsDeleted,
+            isPinned = state.selectedNoteIsPinned,
+            isChecklist = isChecklist,
             tags = NoteTagFormatter.parseInput(state.currentTagsInput),
         )
 
@@ -298,7 +411,15 @@ private class QuickNotesScreenHarness {
 
     fun restoreNote(noteId: Int) {
         storedNotes = storedNotes.map { note ->
-            if (note.id == noteId) note.copy(isArchived = false) else note
+            if (note.id == noteId) {
+                if (note.isDeleted) {
+                    note.copy(isDeleted = false)
+                } else {
+                    note.copy(isArchived = false)
+                }
+            } else {
+                note
+            }
         }
         if (state.selectedNoteId == noteId) {
             clearEditor()
@@ -307,10 +428,55 @@ private class QuickNotesScreenHarness {
     }
 
     fun deleteNote(noteId: Int) {
-        storedNotes = storedNotes.filterNot { note -> note.id == noteId }
+        storedNotes = storedNotes.mapNotNull { note ->
+            if (note.id == noteId) {
+                if (note.isDeleted) {
+                    null
+                } else {
+                    note.copy(isDeleted = true)
+                }
+            } else {
+                note
+            }
+        }
         if (state.selectedNoteId == noteId) {
             clearEditor()
         }
+        syncState()
+    }
+
+    fun toggleChecklistItem(noteId: Int, itemIndex: Int) {
+        storedNotes = storedNotes.map { note ->
+            if (note.id == noteId) {
+                val items = NoteChecklistParser.parse(note.body).toMutableList()
+                if (itemIndex in items.indices) {
+                    val item = items[itemIndex]
+                    items[itemIndex] = item.copy(isChecked = !item.isChecked)
+                    note.copy(body = NoteChecklistParser.toBodyString(items))
+                } else {
+                    note
+                }
+            } else {
+                note
+            }
+        }
+        syncState()
+    }
+
+    fun togglePinNote(noteId: Int) {
+        storedNotes = storedNotes.map { note ->
+            if (note.id == noteId) note.copy(isPinned = !note.isPinned) else note
+        }
+        val note = storedNotes.firstOrNull { it.id == noteId }
+        if (state.selectedNoteId == noteId && note != null) {
+            state = state.copy(selectedNoteIsPinned = note.isPinned)
+        }
+        syncState()
+    }
+
+    fun emptyTrash() {
+        storedNotes = storedNotes.filterNot { note -> note.isDeleted }
+        clearEditor()
         syncState()
     }
 

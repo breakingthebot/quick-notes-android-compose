@@ -16,6 +16,8 @@ import com.breakingthebot.quicknotes.ui.NotesScreenState
 import com.breakingthebot.quicknotes.util.NoteInputSanitizer
 import com.breakingthebot.quicknotes.util.NoteListFormatter
 import com.breakingthebot.quicknotes.util.NoteTagFormatter
+import com.breakingthebot.quicknotes.util.NoteChecklistParser
+import com.breakingthebot.quicknotes.util.ChecklistItem
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -97,6 +99,15 @@ class NotesViewModel(
     }
 
     /**
+     * Updates whether the note is formatted as a checklist.
+     *
+     * @param isChecklist True to enable checklist formatting.
+     */
+    fun onIsChecklistChanged(isChecklist: Boolean) {
+        editorState.value = editorState.value.copy(currentIsChecklist = isChecklist)
+    }
+
+    /**
      * Updates the search query used to filter the visible note list.
      *
      * @param query New search field value.
@@ -144,10 +155,17 @@ class NotesViewModel(
         val selectedNote = screenState.value.notes.firstOrNull { note -> note.id == noteId } ?: return
         editorState.value = editorState.value.copy(
             currentTitle = selectedNote.title,
-            currentBody = selectedNote.body,
+            currentBody = if (selectedNote.isChecklist) {
+                NoteChecklistParser.parse(selectedNote.body).joinToString("\n") { it.text }
+            } else {
+                selectedNote.body
+            },
             currentTagsInput = NoteTagFormatter.formatForEditor(selectedNote.tags),
             selectedNoteId = selectedNote.id,
             selectedNoteIsArchived = selectedNote.isArchived,
+            selectedNoteIsDeleted = selectedNote.isDeleted,
+            selectedNoteIsPinned = selectedNote.isPinned,
+            currentIsChecklist = selectedNote.isChecklist,
         )
     }
 
@@ -161,6 +179,9 @@ class NotesViewModel(
             currentTagsInput = "",
             selectedNoteId = null,
             selectedNoteIsArchived = false,
+            selectedNoteIsDeleted = false,
+            selectedNoteIsPinned = false,
+            currentIsChecklist = false,
         )
     }
 
@@ -177,14 +198,31 @@ class NotesViewModel(
             return
         }
 
+        val isChecklist = editorState.value.currentIsChecklist
+        var body = sanitizedBody
+        if (isChecklist) {
+            val lines = body.lines().map { it.trim() }.filter { it.isNotBlank() }
+            val existingItems = editorState.value.selectedNoteId?.let { id ->
+                screenState.value.notes.firstOrNull { it.id == id }?.let { NoteChecklistParser.parse(it.body) }
+            } ?: emptyList()
+            val checkedTexts = existingItems.filter { it.isChecked }.map { it.text }.toSet()
+            val checklistItems = lines.map { line ->
+                ChecklistItem(line, line in checkedTexts)
+            }
+            body = NoteChecklistParser.toBodyString(checklistItems)
+        }
+
         val noteId = editorState.value.selectedNoteId
         val note = Note(
             id = noteId ?: 0,
             title = sanitizedTitle,
-            body = sanitizedBody,
+            body = body,
             updatedAt = System.currentTimeMillis(),
             isArchived = editorState.value.selectedNoteIsArchived,
             tags = parsedTags,
+            isDeleted = editorState.value.selectedNoteIsDeleted,
+            isPinned = editorState.value.selectedNoteIsPinned,
+            isChecklist = isChecklist,
         )
 
         viewModelScope.launch {
@@ -202,19 +240,30 @@ class NotesViewModel(
     }
 
     /**
-     * Deletes a selected note if it exists.
+     * Deletes a selected note. If the note is already in the Trash collection,
+     * it is permanently deleted. Otherwise, it is soft-deleted (moved to Trash).
      *
      * @param noteId Identifier of the note to remove.
      */
     fun deleteNote(noteId: Int) {
         val note = screenState.value.notes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
         viewModelScope.launch {
-            repository.deleteNote(note)
+            if (note.isDeleted) {
+                repository.deleteNote(note)
+                emitMessage("Note permanently deleted.")
+            } else {
+                repository.updateNote(
+                    note.copy(
+                        isDeleted = true,
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+                emitMessage("Note moved to trash.")
+            }
             notesChangeNotifier.onNotesChanged()
             if (editorState.value.selectedNoteId == noteId) {
                 clearEditor()
             }
-            emitMessage("Note deleted.")
         }
     }
 
@@ -241,24 +290,91 @@ class NotesViewModel(
     }
 
     /**
-     * Restores a note back to the active collection.
+     * Restores a note back to active collection. If the note is in Trash,
+     * it restores its deleted state. Otherwise, it restores its archive state.
      *
      * @param noteId Identifier of the note to restore.
      */
     fun restoreNote(noteId: Int) {
         val note = screenState.value.notes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
         viewModelScope.launch {
-            repository.updateNote(
-                note.copy(
-                    isArchived = false,
-                    updatedAt = System.currentTimeMillis(),
-                ),
-            )
+            if (note.isDeleted) {
+                repository.updateNote(
+                    note.copy(
+                        isDeleted = false,
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+            } else {
+                repository.updateNote(
+                    note.copy(
+                        isArchived = false,
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+            }
             notesChangeNotifier.onNotesChanged()
             if (editorState.value.selectedNoteId == noteId) {
                 clearEditor()
             }
             emitMessage("Note restored.")
+        }
+    }
+
+    /**
+     * Toggles the checked state of a checklist item.
+     *
+     * @param noteId Identifier of the note.
+     * @param itemIndex Index of the checklist item.
+     */
+    fun toggleChecklistItem(noteId: Int, itemIndex: Int) {
+        val note = screenState.value.notes.firstOrNull { it.id == noteId } ?: return
+        val items = NoteChecklistParser.parse(note.body).toMutableList()
+        if (itemIndex in items.indices) {
+            val item = items[itemIndex]
+            items[itemIndex] = item.copy(isChecked = !item.isChecked)
+            viewModelScope.launch {
+                repository.updateNote(
+                    note.copy(
+                        body = NoteChecklistParser.toBodyString(items),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+                notesChangeNotifier.onNotesChanged()
+            }
+        }
+    }
+
+    /**
+     * Toggles the pinned state of a note.
+     *
+     * @param noteId Identifier of the note to pin or unpin.
+     */
+    fun togglePinNote(noteId: Int) {
+        val note = screenState.value.notes.firstOrNull { existingNote -> existingNote.id == noteId } ?: return
+        viewModelScope.launch {
+            val updatedNote = note.copy(
+                isPinned = !note.isPinned,
+                updatedAt = System.currentTimeMillis(),
+            )
+            repository.updateNote(updatedNote)
+            notesChangeNotifier.onNotesChanged()
+            if (editorState.value.selectedNoteId == noteId) {
+                editorState.value = editorState.value.copy(selectedNoteIsPinned = updatedNote.isPinned)
+            }
+            emitMessage(if (updatedNote.isPinned) "Note pinned." else "Note unpinned.")
+        }
+    }
+
+    /**
+     * Permanently deletes all notes currently marked as deleted (in Trash).
+     */
+    fun emptyTrash() {
+        viewModelScope.launch {
+            repository.emptyTrash()
+            notesChangeNotifier.onNotesChanged()
+            clearEditor()
+            emitMessage("Trash emptied.")
         }
     }
 

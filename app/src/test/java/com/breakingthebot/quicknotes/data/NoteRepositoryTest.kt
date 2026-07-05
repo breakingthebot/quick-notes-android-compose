@@ -59,4 +59,21 @@ class NoteRepositoryTest {
 
         assertEquals(emptyList<Note>(), fakeDao.observeNotes().first())
     }
+
+    /**
+     * Confirms repository emptyTrash removes all deleted notes.
+     */
+    @Test
+    fun emptyTrash_removesDeletedNotes() = runTest {
+        val fakeDao = InMemoryNoteDao()
+        val repository = NoteRepository(fakeDao)
+        val activeNote = Note(id = 1, title = "Active", body = "Active body", updatedAt = 100L)
+        val deletedNote = Note(id = 2, title = "Deleted", body = "Deleted body", updatedAt = 200L, isDeleted = true)
+
+        repository.addNote(activeNote)
+        repository.addNote(deletedNote)
+        repository.emptyTrash()
+
+        assertEquals(listOf(activeNote), fakeDao.observeNotes().first())
+    }
 }
