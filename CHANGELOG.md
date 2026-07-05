@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.0 - 2026-07-05
+- Added Smart AI Voice Notes with offline Speech-to-Text transcription, auto-tagging, automatic notebook classification, and natural language date extraction.
+- Created `AudioRecorder` utility using Android's `MediaRecorder` API to record private audio files.
+- Created `VoiceTranscriptionService` utilizing Android's native `SpeechRecognizer` API with mock test hooks for headless test coverage.
+- Created `SmartContentAnalyzer` heuristic NLP engine that parses transcription content to auto-assign notebook folders, auto-tag keywords, and extract dates for note reminders.
+- Built active recording waveform statuses and inline audio player controls inside Note Editor Card.
+- Added comprehensive unit and UI integration tests verifying Speech-to-Text transcription, natural language tag/folder parsing, and relative date extraction.
+- Incremented Room database schema version to 11 with migration code to support `audioUri` properties.
+
 ## 2.2.1 - 2026-07-05
 - Refactored screen header summary to be completely borderless and styled with theme primary accents, removing heavy visual card container boxes.
 - Updated all browser filter cards (Folders, Tags, Date filters) to use outlined, clean surface containers with primary themed titles instead of heavy solid grey surfaceVariant backgrounds.

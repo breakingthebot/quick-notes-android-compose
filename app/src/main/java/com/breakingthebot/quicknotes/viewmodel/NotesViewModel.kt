@@ -226,6 +226,7 @@ class NotesViewModel(
             selectedReminderTime = selectedNote.reminderTime,
             currentNoteNotebookId = selectedNote.notebookId,
             currentNoteImageUri = selectedNote.imageUri,
+            currentNoteAudioUri = selectedNote.audioUri,
         )
     }
 
@@ -246,6 +247,7 @@ class NotesViewModel(
             selectedReminderTime = null,
             currentNoteNotebookId = null,
             currentNoteImageUri = null,
+            currentNoteAudioUri = null,
         )
     }
 
@@ -288,10 +290,11 @@ class NotesViewModel(
             isDeleted = editorState.value.selectedNoteIsDeleted,
             isPinned = editorState.value.selectedNoteIsPinned,
             isChecklist = isChecklist,
-            color = editorState.value.currentNoteColor,
+            color = isChecklist.let { editorState.value.currentNoteColor },
             reminderTime = reminderTime,
             notebookId = editorState.value.currentNoteNotebookId,
             imageUri = editorState.value.currentNoteImageUri,
+            audioUri = editorState.value.currentNoteAudioUri,
         )
 
         viewModelScope.launch {
@@ -605,6 +608,86 @@ class NotesViewModel(
     private fun emitMessage(message: String) {
         viewModelScope.launch {
             messageEvents.emit(message)
+        }
+    }
+
+    /**
+     * Updates the audio URI of the note currently being edited.
+     *
+     * @param uriString Path string to the private audio recording file.
+     */
+    fun onCurrentNoteAudioChanged(uriString: String?) {
+        editorState.value = editorState.value.copy(currentNoteAudioUri = uriString)
+    }
+
+    /**
+     * Starts voice recording and Speech-to-Text transcription.
+     *
+     * @param context Android context to initialize the recording session.
+     */
+    fun startVoiceRecording(context: Context) {
+        editorState.value = editorState.value.copy(isRecordingVoice = true)
+        val audioPath = com.breakingthebot.quicknotes.util.AudioRecorder.startRecording(context)
+        if (audioPath != null) {
+            onCurrentNoteAudioChanged(audioPath)
+        }
+        com.breakingthebot.quicknotes.services.VoiceTranscriptionService.startListening(
+            context = context,
+            onResult = { transcript ->
+                stopVoiceRecording(transcript)
+            },
+            onError = { errorMessage ->
+                emitMessage(errorMessage)
+                stopVoiceRecording(null)
+            }
+        )
+    }
+
+    /**
+     * Stops the active voice recording and transcription session.
+     *
+     * @param transcript The transcribed text result, if any.
+     */
+    fun stopVoiceRecording(transcript: String?) {
+        editorState.value = editorState.value.copy(isRecordingVoice = false)
+        com.breakingthebot.quicknotes.util.AudioRecorder.stopRecording()
+        com.breakingthebot.quicknotes.services.VoiceTranscriptionService.stopListening()
+
+        if (!transcript.isNullOrBlank()) {
+            val title = if (editorState.value.currentTitle.isBlank()) "Voice Note" else editorState.value.currentTitle
+            val body = if (editorState.value.currentBody.isBlank()) transcript else "${editorState.value.currentBody}\n$transcript"
+            
+            editorState.value = editorState.value.copy(
+                currentTitle = title,
+                currentBody = body
+            )
+
+            val analysis = com.breakingthebot.quicknotes.util.SmartContentAnalyzer.analyze(
+                text = transcript,
+                notebooks = editorState.value.notebooks
+            )
+
+            if (analysis.autoTags.isNotEmpty()) {
+                val currentTags = NoteTagFormatter.parseInput(editorState.value.currentTagsInput).toMutableSet()
+                currentTags.addAll(analysis.autoTags)
+                editorState.value = editorState.value.copy(
+                    currentTagsInput = NoteTagFormatter.formatForEditor(currentTags.toList())
+                )
+            }
+
+            if (analysis.notebookId != null && editorState.value.currentNoteNotebookId == null) {
+                editorState.value = editorState.value.copy(
+                    currentNoteNotebookId = analysis.notebookId
+                )
+            }
+
+            if (analysis.detectedReminderTime != null && editorState.value.selectedReminderTime == null) {
+                editorState.value = editorState.value.copy(
+                    selectedReminderTime = analysis.detectedReminderTime
+                )
+                val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+                emitMessage("Auto-set reminder for ${sdf.format(java.util.Date(analysis.detectedReminderTime))}")
+            }
         }
     }
 }

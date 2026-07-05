@@ -45,4 +45,6 @@ data class NotesScreenState(
     val selectedNotebookId: Int? = null,
     val currentNoteNotebookId: Int? = null,
     val currentNoteImageUri: String? = null,
+    val currentNoteAudioUri: String? = null,
+    val isRecordingVoice: Boolean = false,
 )

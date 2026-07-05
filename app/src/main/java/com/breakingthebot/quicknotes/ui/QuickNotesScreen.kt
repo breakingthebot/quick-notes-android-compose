@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -123,6 +124,9 @@ fun QuickNotesScreen(
     onNotebookSelected: (Int?) -> Unit,
     onCurrentNoteNotebookChanged: (Int?) -> Unit,
     onCurrentNoteImageChanged: (String?) -> Unit,
+    onCurrentNoteAudioChanged: (String?) -> Unit = {},
+    onStartVoiceRecording: () -> Unit = {},
+    onStopVoiceRecording: () -> Unit = {},
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -174,6 +178,9 @@ fun QuickNotesScreen(
                     onReminderTimeChange = onReminderTimeChange,
                     onCurrentNoteNotebookChanged = onCurrentNoteNotebookChanged,
                     onCurrentNoteImageChanged = onCurrentNoteImageChanged,
+                    onCurrentNoteAudioChanged = onCurrentNoteAudioChanged,
+                    onStartVoiceRecording = onStartVoiceRecording,
+                    onStopVoiceRecording = onStopVoiceRecording,
                 )
             }
             item {
@@ -609,6 +616,9 @@ private fun NoteEditorCard(
     onReminderTimeChange: (Long?) -> Unit,
     onCurrentNoteNotebookChanged: (Int?) -> Unit,
     onCurrentNoteImageChanged: (String?) -> Unit,
+    onCurrentNoteAudioChanged: (String?) -> Unit,
+    onStartVoiceRecording: () -> Unit,
+    onStopVoiceRecording: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var tempCameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
@@ -646,6 +656,32 @@ private fun NoteEditorCard(
             }
         } else {
             attachedBitmap = null
+        }
+    }
+
+    var isPlaying by remember { mutableStateOf(false) }
+    val mediaPlayer = remember { android.media.MediaPlayer() }
+    DisposableEffect(state.currentNoteAudioUri) {
+        onDispose {
+            try {
+                mediaPlayer.stop()
+                mediaPlayer.release()
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+    LaunchedEffect(state.currentNoteAudioUri) {
+        isPlaying = false
+        try {
+            mediaPlayer.reset()
+            val uriStr = state.currentNoteAudioUri
+            if (uriStr != null) {
+                mediaPlayer.setDataSource(uriStr)
+                mediaPlayer.prepare()
+            }
+        } catch (e: Exception) {
+            // ignore
         }
     }
 
@@ -735,9 +771,9 @@ private fun NoteEditorCard(
             }
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Attach Image Options
+            // Attach Media Options (Image & Voice)
             Text(
-                text = "Attach Image",
+                text = "Attach media",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -755,7 +791,7 @@ private fun NoteEditorCard(
                     modifier = Modifier.weight(1f).testTag("take-photo-button"),
                     shape = MaterialTheme.shapes.small
                 ) {
-                    Text(text = "📷 Take Photo")
+                    Text(text = "📷 Photo")
                 }
                 OutlinedButton(
                     onClick = {
@@ -764,9 +800,149 @@ private fun NoteEditorCard(
                     modifier = Modifier.weight(1f).testTag("choose-gallery-button"),
                     shape = MaterialTheme.shapes.small
                 ) {
-                    Text(text = "🖼️ From Gallery")
+                    Text(text = "🖼️ Gallery")
+                }
+
+                val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+                    onResult = { granted ->
+                        if (granted) {
+                            onStartVoiceRecording()
+                        }
+                    }
+                )
+
+                OutlinedButton(
+                    onClick = {
+                        if (state.isRecordingVoice) {
+                            onStopVoiceRecording()
+                        } else {
+                            val permission = android.Manifest.permission.RECORD_AUDIO
+                            val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            if (hasPermission) {
+                                onStartVoiceRecording()
+                            } else {
+                                permissionLauncher.launch(permission)
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f).testTag("voice-note-button"),
+                    shape = MaterialTheme.shapes.small,
+                    colors = if (state.isRecordingVoice) {
+                        androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    } else {
+                        androidx.compose.material3.ButtonDefaults.outlinedButtonColors()
+                    }
+                ) {
+                    Text(text = if (state.isRecordingVoice) "🛑 Stop" else "🎙️ Voice")
                 }
             }
+
+            if (state.isRecordingVoice) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f))
+                        .padding(8.dp)
+                        .testTag("voice-recording-status"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    var isVisible by remember { mutableStateOf(true) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            kotlinx.coroutines.delay(500)
+                            isVisible = !isVisible
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(if (isVisible) Color.Red else Color.Transparent)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Recording audio... Speak now",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            state.currentNoteAudioUri?.let { audioUri ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("audio-player-container"),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.IconButton(
+                            onClick = {
+                                try {
+                                    if (isPlaying) {
+                                        mediaPlayer.pause()
+                                        isPlaying = false
+                                    } else {
+                                        mediaPlayer.start()
+                                        isPlaying = true
+                                        mediaPlayer.setOnCompletionListener {
+                                            isPlaying = false
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            },
+                            modifier = Modifier.testTag("play-pause-audio-button")
+                        ) {
+                            Text(text = if (isPlaying) "⏸️" else "▶️", style = MaterialTheme.typography.titleLarge)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Voice Recording",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            val durationStr = remember(audioUri) {
+                                try {
+                                    val sec = mediaPlayer.duration / 1000
+                                    "${sec / 60}:${String.format("%02d", sec % 60)}"
+                                } catch (e: Exception) {
+                                    "0:00"
+                                }
+                            }
+                            Text(
+                                text = "Duration: $durationStr",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        androidx.compose.material3.IconButton(
+                            onClick = {
+                                onCurrentNoteAudioChanged(null)
+                            },
+                            modifier = Modifier.testTag("remove-audio-button")
+                        ) {
+                            Text(text = "❌", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(

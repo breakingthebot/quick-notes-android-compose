@@ -167,4 +167,21 @@ object DatabaseMigrations {
                  )
              }
         }
+
+    /**
+     * Adds the audioUri column while preserving existing notes.
+     */
+    val migration10To11: Migration =
+        object : Migration(10, 11) {
+            /**
+             * Updates the schema from version 10 to version 11.
+             *
+             * @param database Raw SQLite database being migrated.
+             */
+             override fun migrate(database: SupportSQLiteDatabase) {
+                 database.execSQL(
+                     "ALTER TABLE notes ADD COLUMN audioUri TEXT DEFAULT NULL",
+                 )
+             }
+        }
 }

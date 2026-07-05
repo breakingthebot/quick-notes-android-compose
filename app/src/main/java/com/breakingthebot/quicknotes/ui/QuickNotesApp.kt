@@ -76,5 +76,8 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         onNotebookSelected = viewModel::onNotebookSelected,
         onCurrentNoteNotebookChanged = viewModel::onCurrentNoteNotebookChanged,
         onCurrentNoteImageChanged = viewModel::onCurrentNoteImageChanged,
+        onCurrentNoteAudioChanged = viewModel::onCurrentNoteAudioChanged,
+        onStartVoiceRecording = { viewModel.startVoiceRecording(context) },
+        onStopVoiceRecording = { viewModel.stopVoiceRecording(null) },
     )
 }

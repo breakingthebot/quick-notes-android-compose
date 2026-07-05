@@ -33,4 +33,5 @@ data class Note(
     val reminderTime: Long? = null,
     val notebookId: Int? = null,
     val imageUri: String? = null,
+    val audioUri: String? = null,
 )

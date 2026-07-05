@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasAnyAncestor
@@ -100,6 +101,9 @@ class QuickNotesAppRobolectricTest {
                     onNotebookSelected = harness::onNotebookSelected,
                     onCurrentNoteNotebookChanged = harness::onCurrentNoteNotebookChanged,
                     onCurrentNoteImageChanged = harness::onCurrentNoteImageChanged,
+                    onCurrentNoteAudioChanged = harness::onCurrentNoteAudioChanged,
+                    onStartVoiceRecording = { harness.startVoiceRecording(context) },
+                    onStopVoiceRecording = { harness.stopVoiceRecording(null) },
                 )
             }
         }
@@ -562,6 +566,124 @@ class QuickNotesAppRobolectricTest {
         composeRule.onAllNodes(hasTestTag("note-card-image-$title"), useUnmergedTree = true).assertCountEquals(0)
     }
 
+    @Test
+    fun voiceRecording_transcribesAndAutoAssignsMetadata() {
+        // Grant RECORD_AUDIO permission in the Robolectric sandbox
+        org.robolectric.Shadows.shadowOf(androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>())
+            .grantPermissions(android.Manifest.permission.RECORD_AUDIO)
+
+        val folderName = "Work"
+        
+        // 1. Create a notebook folder "Work" first to support auto-association testing
+        scrollToNode("folders-filter-card")
+        composeRule.onNodeWithTag("manage-folders-button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("create-folder-input").performTextInput(folderName)
+        composeRule.onNodeWithTag("create-folder-btn").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("folder-manager-close").performClick()
+        composeRule.waitForIdle()
+
+        // 2. Set up the mock transcription result
+        com.breakingthebot.quicknotes.services.VoiceTranscriptionService.mockTranscriptResult = 
+            "buy groceries for dinner tomorrow at 6 pm"
+
+        // 3. Click the voice note button
+        scrollToNode("voice-note-button")
+        composeRule.onNodeWithTag("voice-note-button").performClick()
+        composeRule.waitForIdle()
+
+        // 4. Verify transcription text auto-populated the editor fields
+        scrollToNode("title-input")
+        composeRule.onNodeWithTag("title-input").assert(androidx.compose.ui.test.hasText("Voice Note"))
+        composeRule.onNodeWithTag("body-input").assert(androidx.compose.ui.test.hasText("buy groceries for dinner tomorrow at 6 pm"))
+
+        // 5. Verify tags auto-extracted ("shopping" and "food" should be detected from "buy groceries for dinner")
+        composeRule.onNodeWithTag("tags-input").assert(androidx.compose.ui.test.hasText("shopping, food"))
+
+        // 6. Verify auto-reminder scheduled for tomorrow at 6 PM
+        scrollToNode("reminder-display-text")
+        composeRule.onNodeWithTag("reminder-display-text").assertExists()
+
+        // 7. Verify inline audio player is visible
+        scrollToNode("audio-player-container")
+        composeRule.onNodeWithTag("audio-player-container").assertExists()
+
+        // Reset mock
+        com.breakingthebot.quicknotes.services.VoiceTranscriptionService.mockTranscriptResult = null
+    }
+
+    @Test
+    fun voiceRecording_autoAssignsWorkNotebook() {
+        // Grant RECORD_AUDIO permission in the Robolectric sandbox
+        org.robolectric.Shadows.shadowOf(androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>())
+            .grantPermissions(android.Manifest.permission.RECORD_AUDIO)
+
+        val folderName = "Work"
+        
+        // 1. Create a notebook folder "Work"
+        scrollToNode("folders-filter-card")
+        composeRule.onNodeWithTag("manage-folders-button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("create-folder-input").performTextInput(folderName)
+        composeRule.onNodeWithTag("create-folder-btn").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("folder-manager-close").performClick()
+        composeRule.waitForIdle()
+
+        // 2. Set up the mock transcription result containing "meeting" which triggers "Work" folder assignment
+        com.breakingthebot.quicknotes.services.VoiceTranscriptionService.mockTranscriptResult = 
+            "important meeting details"
+
+        // 3. Click the voice note button
+        scrollToNode("voice-note-button")
+        composeRule.onNodeWithTag("voice-note-button").performClick()
+        composeRule.waitForIdle()
+
+        // 4. Verify notebook folder "Work" is selected in the editor
+        scrollToNode("folder-option-Work")
+        composeRule.onNodeWithTag("folder-option-Work").assertIsSelected()
+
+        // Reset mock
+        com.breakingthebot.quicknotes.services.VoiceTranscriptionService.mockTranscriptResult = null
+    }
+
+    @Test
+    fun smartContentAnalyzer_extractsCorrectTagsAndFolders() {
+        val notebooks = listOf(
+            com.breakingthebot.quicknotes.model.Notebook(id = 101, name = "Work", createdAt = 0L),
+            com.breakingthebot.quicknotes.model.Notebook(id = 102, name = "Personal", createdAt = 0L)
+        )
+
+        // Case 1: Tag shopping, food, and Personal notebook synonym matching "buy"
+        val result1 = com.breakingthebot.quicknotes.util.SmartContentAnalyzer.analyze(
+            text = "Need to buy dinner groceries",
+            notebooks = notebooks
+        )
+        org.junit.Assert.assertTrue(result1.autoTags.contains("shopping"))
+        org.junit.Assert.assertTrue(result1.autoTags.contains("food"))
+        org.junit.Assert.assertEquals(102, result1.notebookId)
+
+        // Case 2: Tag work and Work notebook matching folder name
+        val result2 = com.breakingthebot.quicknotes.util.SmartContentAnalyzer.analyze(
+            text = "Discuss office deadline details in the Work notebook",
+            notebooks = notebooks
+        )
+        org.junit.Assert.assertTrue(result2.autoTags.contains("work"))
+        org.junit.Assert.assertEquals(101, result2.notebookId)
+    }
+
+    @Test
+    fun smartContentAnalyzer_extractsRelativeDates() {
+        val result = com.breakingthebot.quicknotes.util.SmartContentAnalyzer.analyze(
+            text = "remind me in 3 hours",
+            notebooks = emptyList()
+        )
+        org.junit.Assert.assertNotNull(result.detectedReminderTime)
+        val diff = result.detectedReminderTime!! - System.currentTimeMillis()
+        org.junit.Assert.assertTrue(diff in 10700000..10900000)
+    }
+
     /**
      * Verifies swiping left and right on note items triggers archive, restore, and delete operations.
      */
@@ -873,6 +995,7 @@ private class QuickNotesScreenHarness {
             selectedReminderTime = note.reminderTime,
             currentNoteNotebookId = note.notebookId,
             currentNoteImageUri = note.imageUri,
+            currentNoteAudioUri = note.audioUri,
         )
     }
 
@@ -890,6 +1013,7 @@ private class QuickNotesScreenHarness {
             selectedReminderTime = null,
             currentNoteNotebookId = null,
             currentNoteImageUri = null,
+            currentNoteAudioUri = null,
         )
     }
 
@@ -928,6 +1052,7 @@ private class QuickNotesScreenHarness {
             tags = NoteTagFormatter.parseInput(state.currentTagsInput),
             notebookId = state.currentNoteNotebookId,
             imageUri = state.currentNoteImageUri,
+            audioUri = state.currentNoteAudioUri,
         )
 
         storedNotes = (storedNotes.filterNot { note -> note.id == noteId } + updatedNote)
@@ -1109,6 +1234,63 @@ private class QuickNotesScreenHarness {
 
     fun onCurrentNoteImageChanged(uriString: String?) {
         state = state.copy(currentNoteImageUri = uriString)
+    }
+
+    fun onCurrentNoteAudioChanged(uriString: String?) {
+        state = state.copy(currentNoteAudioUri = uriString)
+    }
+
+    fun startVoiceRecording(context: Context) {
+        state = state.copy(isRecordingVoice = true)
+        val audioPath = "mock-audio-path"
+        onCurrentNoteAudioChanged(audioPath)
+        com.breakingthebot.quicknotes.services.VoiceTranscriptionService.startListening(
+            context = context,
+            onResult = { transcript ->
+                stopVoiceRecording(transcript)
+            },
+            onError = { _ ->
+                stopVoiceRecording(null)
+            }
+        )
+    }
+
+    fun stopVoiceRecording(transcript: String?) {
+        state = state.copy(isRecordingVoice = false)
+        if (!transcript.isNullOrBlank()) {
+            val title = if (state.currentTitle.isBlank()) "Voice Note" else state.currentTitle
+            val body = if (state.currentBody.isBlank()) transcript else "${state.currentBody}\n$transcript"
+            
+            state = state.copy(
+                currentTitle = title,
+                currentBody = body
+            )
+
+            val analysis = com.breakingthebot.quicknotes.util.SmartContentAnalyzer.analyze(
+                text = transcript,
+                notebooks = state.notebooks
+            )
+
+            if (analysis.autoTags.isNotEmpty()) {
+                val currentTags = NoteTagFormatter.parseInput(state.currentTagsInput).toMutableSet()
+                currentTags.addAll(analysis.autoTags)
+                state = state.copy(
+                    currentTagsInput = NoteTagFormatter.formatForEditor(currentTags.toList())
+                )
+            }
+
+            if (analysis.notebookId != null && state.currentNoteNotebookId == null) {
+                state = state.copy(
+                    currentNoteNotebookId = analysis.notebookId
+                )
+            }
+
+            if (analysis.detectedReminderTime != null && state.selectedReminderTime == null) {
+                state = state.copy(
+                    selectedReminderTime = analysis.detectedReminderTime
+                )
+            }
+        }
     }
 
     private fun syncState() {
