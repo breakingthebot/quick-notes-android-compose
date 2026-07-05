@@ -10,15 +10,29 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.TypeConverter
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.model.NoteColor
+
+class NoteColorConverter {
+    @TypeConverter
+    fun fromNoteColor(color: NoteColor): String = color.name
+
+    @TypeConverter
+    fun toNoteColor(value: String): NoteColor = try {
+        NoteColor.valueOf(value)
+    } catch (e: IllegalArgumentException) {
+        NoteColor.DEFAULT
+    }
+}
 
 private const val DATABASE_NAME = "quick_notes.db"
 
 /**
  * Room database that stores notes locally on the device.
  */
-@Database(entities = [Note::class], version = 6, exportSchema = false)
-@TypeConverters(TagListConverter::class)
+@Database(entities = [Note::class], version = 7, exportSchema = false)
+@TypeConverters(TagListConverter::class, NoteColorConverter::class)
 abstract class QuickNotesDatabase : RoomDatabase() {
     /**
      * Returns the DAO used to query and mutate note records.
@@ -49,6 +63,7 @@ abstract class QuickNotesDatabase : RoomDatabase() {
                     DatabaseMigrations.migration3To4,
                     DatabaseMigrations.migration4To5,
                     DatabaseMigrations.migration5To6,
+                    DatabaseMigrations.migration6To7,
                 ).build().also { instance = it }
             }
         }

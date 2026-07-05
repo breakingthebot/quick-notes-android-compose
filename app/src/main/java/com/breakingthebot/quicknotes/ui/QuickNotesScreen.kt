@@ -6,6 +6,7 @@
 package com.breakingthebot.quicknotes.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import com.breakingthebot.quicknotes.model.NoteColor
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -87,6 +94,7 @@ fun QuickNotesScreen(
     onPinClick: (Int) -> Unit,
     onIsChecklistChange: (Boolean) -> Unit,
     onChecklistItemToggle: (Int, Int) -> Unit,
+    onNoteColorChange: (NoteColor) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -134,6 +142,7 @@ fun QuickNotesScreen(
                     onSaveClick = onSaveClick,
                     onClearClick = onClearClick,
                     onIsChecklistChange = onIsChecklistChange,
+                    onNoteColorChange = onNoteColorChange,
                 )
             }
             item {
@@ -310,6 +319,7 @@ private fun NoteEditorCard(
     onSaveClick: () -> Unit,
     onClearClick: () -> Unit,
     onIsChecklistChange: (Boolean) -> Unit,
+    onNoteColorChange: (NoteColor) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -372,6 +382,38 @@ private fun NoteEditorCard(
                     .height(168.dp)
                     .testTag("body-input"),
             )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Note color",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                NoteColor.entries.forEach { noteColor ->
+                    val colorValue = when (noteColor) {
+                        NoteColor.DEFAULT -> MaterialTheme.colorScheme.surface
+                        NoteColor.MINT -> Color(0xFFE8F5E9)
+                        NoteColor.PEACH -> Color(0xFFFFEBD5)
+                        NoteColor.LAVENDER -> Color(0xFFF3E8FF)
+                        NoteColor.BLUE -> Color(0xFFE3F2FD)
+                    }
+                    val isSelected = state.currentNoteColor == noteColor
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onNoteColorChange(noteColor) },
+                        modifier = Modifier.testTag("color-choice-${noteColor.name.lowercase()}"),
+                        label = { Text(text = noteColor.label) },
+                        colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                            containerColor = colorValue,
+                            selectedContainerColor = colorValue,
+                        )
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = state.currentTagsInput,

@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.breakingthebot.quicknotes.data.NoteRepository
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.model.NoteColor
 import com.breakingthebot.quicknotes.services.NotesChangeNotifier
 import com.breakingthebot.quicknotes.ui.NoteCollection
 import com.breakingthebot.quicknotes.ui.NoteSortOption
@@ -108,6 +109,15 @@ class NotesViewModel(
     }
 
     /**
+     * Updates the custom category color for the note.
+     *
+     * @param noteColor The selected note background color option.
+     */
+    fun onNoteColorChanged(noteColor: NoteColor) {
+        editorState.value = editorState.value.copy(currentNoteColor = noteColor)
+    }
+
+    /**
      * Updates the search query used to filter the visible note list.
      *
      * @param query New search field value.
@@ -166,6 +176,7 @@ class NotesViewModel(
             selectedNoteIsDeleted = selectedNote.isDeleted,
             selectedNoteIsPinned = selectedNote.isPinned,
             currentIsChecklist = selectedNote.isChecklist,
+            currentNoteColor = selectedNote.color,
         )
     }
 
@@ -182,6 +193,7 @@ class NotesViewModel(
             selectedNoteIsDeleted = false,
             selectedNoteIsPinned = false,
             currentIsChecklist = false,
+            currentNoteColor = NoteColor.DEFAULT,
         )
     }
 
@@ -223,6 +235,7 @@ class NotesViewModel(
             isDeleted = editorState.value.selectedNoteIsDeleted,
             isPinned = editorState.value.selectedNoteIsPinned,
             isChecklist = isChecklist,
+            color = editorState.value.currentNoteColor,
         )
 
         viewModelScope.launch {

@@ -96,4 +96,21 @@ object DatabaseMigrations {
                  )
              }
         }
+
+    /**
+     * Adds the color categorization column while preserving existing notes.
+     */
+    val migration6To7: Migration =
+        object : Migration(6, 7) {
+            /**
+             * Updates the schema from version 6 to version 7.
+             *
+             * @param database Raw SQLite database being migrated.
+             */
+             override fun migrate(database: SupportSQLiteDatabase) {
+                 database.execSQL(
+                     "ALTER TABLE notes ADD COLUMN color TEXT NOT NULL DEFAULT 'DEFAULT'",
+                 )
+             }
+        }
 }

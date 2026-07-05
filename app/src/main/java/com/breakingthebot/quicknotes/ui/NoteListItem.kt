@@ -29,7 +29,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.ButtonDefaults
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.model.NoteColor
+import com.breakingthebot.quicknotes.ui.theme.NoteColorMapper
 import com.breakingthebot.quicknotes.util.TimeFormatter
 import com.breakingthebot.quicknotes.util.NoteChecklistParser
 
@@ -55,6 +59,9 @@ fun NoteListItem(
     onPinClick: () -> Unit,
     onChecklistItemToggle: (Int) -> Unit,
 ) {
+    val backgroundColor = NoteColorMapper.getBackgroundColor(note.color)
+    val contentColor = NoteColorMapper.getOnBackgroundColor(note.color)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -70,7 +77,8 @@ fun NoteListItem(
                 }
             },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = backgroundColor,
+            contentColor = contentColor,
         ),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -86,12 +94,12 @@ fun NoteListItem(
                 Text(
                     text = TimeFormatter.formatUpdatedAt(note.updatedAt),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = contentColor.copy(alpha = 0.8f),
                 )
             }
             HorizontalDivider(
                 modifier = Modifier.padding(top = 10.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
+                color = contentColor.copy(alpha = 0.2f),
             )
             if (note.isChecklist) {
                 val items = remember(note.body) { NoteChecklistParser.parse(note.body) }
@@ -107,13 +115,18 @@ fun NoteListItem(
                             Checkbox(
                                 checked = item.isChecked,
                                 onCheckedChange = { onChecklistItemToggle(index) },
-                                modifier = Modifier.testTag("checklist-item-checkbox-${note.title}-$index")
+                                modifier = Modifier.testTag("checklist-item-checkbox-${note.title}-$index"),
+                                colors = androidx.compose.material3.CheckboxDefaults.colors(
+                                    checkedColor = contentColor,
+                                    checkmarkColor = backgroundColor,
+                                    uncheckedColor = contentColor.copy(alpha = 0.6f)
+                                )
                             )
                             Text(
                                 text = item.text,
                                 style = MaterialTheme.typography.bodyMedium,
                                 textDecoration = if (item.isChecked) TextDecoration.LineThrough else TextDecoration.None,
-                                color = if (item.isChecked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                                color = if (item.isChecked) contentColor.copy(alpha = 0.6f) else contentColor
                             )
                         }
                     }
@@ -123,6 +136,7 @@ fun NoteListItem(
                     text = note.body,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
+                    color = contentColor,
                 )
             }
             if (note.tags.isNotEmpty()) {
@@ -134,11 +148,16 @@ fun NoteListItem(
                         Text(
                             text = "#$tag",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = contentColor,
                         )
                     }
                 }
             }
+            val buttonColors = ButtonDefaults.outlinedButtonColors(
+                contentColor = contentColor
+            )
+            val buttonBorder = BorderStroke(1.dp, contentColor.copy(alpha = 0.4f))
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -148,6 +167,8 @@ fun NoteListItem(
                         modifier = Modifier
                             .defaultMinSize(minHeight = 48.dp)
                             .testTag("restore-button-${note.title}"),
+                        colors = buttonColors,
+                        border = buttonBorder,
                     ) {
                         Text(text = "Restore")
                     }
@@ -156,6 +177,8 @@ fun NoteListItem(
                         modifier = Modifier
                             .defaultMinSize(minHeight = 48.dp)
                             .testTag("delete-button-${note.title}"),
+                        colors = buttonColors,
+                        border = buttonBorder,
                     ) {
                         Text(text = "Delete permanently")
                     }
@@ -165,6 +188,8 @@ fun NoteListItem(
                         modifier = Modifier
                             .defaultMinSize(minHeight = 48.dp)
                             .testTag(if (note.isPinned) "unpin-button-${note.title}" else "pin-button-${note.title}"),
+                        colors = buttonColors,
+                        border = buttonBorder,
                     ) {
                         Text(text = if (note.isPinned) "Unpin" else "Pin")
                     }
@@ -179,6 +204,8 @@ fun NoteListItem(
                                     "archive-button-${note.title}"
                                 },
                             ),
+                        colors = buttonColors,
+                        border = buttonBorder,
                     ) {
                         Text(text = if (noteCollection == NoteCollection.ARCHIVED) "Restore" else "Archive")
                     }
@@ -187,6 +214,8 @@ fun NoteListItem(
                         modifier = Modifier
                             .defaultMinSize(minHeight = 48.dp)
                             .testTag("delete-button-${note.title}"),
+                        colors = buttonColors,
+                        border = buttonBorder,
                     ) {
                         Text(text = "Delete")
                     }

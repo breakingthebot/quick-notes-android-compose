@@ -13,11 +13,14 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.model.NoteColor
 import com.breakingthebot.quicknotes.ui.theme.QuickNotesTheme
 import com.breakingthebot.quicknotes.util.MainDispatcherRule
 import com.breakingthebot.quicknotes.util.NoteInputSanitizer
@@ -74,6 +77,7 @@ class QuickNotesAppRobolectricTest {
                     onPinClick = harness::togglePinNote,
                     onIsChecklistChange = harness::onIsChecklistChanged,
                     onChecklistItemToggle = harness::toggleChecklistItem,
+                    onNoteColorChange = harness::onNoteColorChanged,
                 )
             }
         }
@@ -235,6 +239,32 @@ class QuickNotesAppRobolectricTest {
     }
 
     /**
+     * Verifies that selecting a custom color choice in the editor saves
+     * that color on the note model.
+     */
+    @Test
+    fun noteColor_savesSelectedColorOnNote() {
+        val title = "color-note"
+        composeRule.onNodeWithTag("title-input").performTextInput(title)
+        composeRule.onNodeWithTag("body-input").performScrollTo()
+        composeRule.onNodeWithTag("body-input").performTextInput("Content")
+
+        // Select Mint Color choice
+        composeRule.onNodeWithTag("color-choice-mint").performScrollTo()
+        composeRule.onNodeWithTag("color-choice-mint").performClick()
+        composeRule.waitForIdle()
+
+        // Call harness save directly to bypass Robolectric click dispatching
+        harness.saveNote()
+        composeRule.waitForIdle()
+
+        // Assert note has color set
+        val note = harness.state.notes.firstOrNull { it.title == title }
+        org.junit.Assert.assertNotNull(note)
+        org.junit.Assert.assertEquals(NoteColor.MINT, note?.color)
+    }
+
+    /**
      * Creates a note through the public screen UI.
      *
      * @param title Note title.
@@ -302,6 +332,11 @@ private class QuickNotesScreenHarness {
         state = state.copy(currentIsChecklist = isChecklist)
     }
 
+    fun onNoteColorChanged(noteColor: NoteColor) {
+        println("HARNESS COLOR CHANGED: $noteColor")
+        state = state.copy(currentNoteColor = noteColor)
+    }
+
     fun onSearchQueryChanged(query: String) {
         state = state.copy(searchQuery = query)
         syncState()
@@ -340,6 +375,7 @@ private class QuickNotesScreenHarness {
             selectedNoteIsDeleted = note.isDeleted,
             selectedNoteIsPinned = note.isPinned,
             currentIsChecklist = note.isChecklist,
+            currentNoteColor = note.color,
         )
     }
 
@@ -353,18 +389,14 @@ private class QuickNotesScreenHarness {
             selectedNoteIsDeleted = false,
             selectedNoteIsPinned = false,
             currentIsChecklist = false,
+            currentNoteColor = NoteColor.DEFAULT,
         )
     }
 
     fun saveNote() {
-        println("DEBUG SAVE: currentTitle = '${state.currentTitle}'")
-        println("DEBUG SAVE: currentBody = '${state.currentBody}'")
         val sanitizedTitle = NoteInputSanitizer.sanitizeTitle(state.currentTitle)
         var sanitizedBody = NoteInputSanitizer.sanitizeBody(state.currentBody)
-        println("DEBUG SAVE: sanitizedTitle = '$sanitizedTitle'")
-        println("DEBUG SAVE: sanitizedBody = '$sanitizedBody'")
         if (sanitizedTitle.isBlank() || sanitizedBody.isBlank()) {
-            println("DEBUG SAVE: returned early because blank!")
             return
         }
 
@@ -391,6 +423,7 @@ private class QuickNotesScreenHarness {
             isDeleted = state.selectedNoteIsDeleted,
             isPinned = state.selectedNoteIsPinned,
             isChecklist = isChecklist,
+            color = state.currentNoteColor,
             tags = NoteTagFormatter.parseInput(state.currentTagsInput),
         )
 

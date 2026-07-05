@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 - 2026-07-05
+- Added Note Colors / Visual Categories allowing notes to be styled with custom background colors (Mint, Peach, Lavender, Blue).
+- Implemented `NoteColorMapper` to map color category selections to theme-compliant, accessible foreground/background color tokens for both light and dark systems.
+- Embedded a color selection `FilterChip` row inside the note editor panel.
+- Customized note list item containers, text, divider lines, checkboxes, and buttons to use custom palette colors dynamically.
+- Registered Room Database migration version 6 to 7, introducing the `color` string column.
+- Added Compose UI integration test verifying color choice mutation and persistence.
+
 ## 1.2.0 - 2026-07-04
 - Added Checklist Mode allowing notes to be formatted as task lists with interactive checkboxes.
 - Implemented `NoteChecklistParser` to parse plain text bodies to/from checked (`[x]`) and unchecked (`[ ]`) task states.

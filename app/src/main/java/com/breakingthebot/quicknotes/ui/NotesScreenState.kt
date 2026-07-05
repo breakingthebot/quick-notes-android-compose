@@ -6,6 +6,7 @@
 package com.breakingthebot.quicknotes.ui
 
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.model.NoteColor
 
 /**
  * Snapshot of the screen state needed to render the notes interface.
@@ -25,6 +26,7 @@ data class NotesScreenState(
     val currentBody: String = "",
     val currentTagsInput: String = "",
     val currentIsChecklist: Boolean = false,
+    val currentNoteColor: NoteColor = NoteColor.DEFAULT,
     val selectedNoteId: Int? = null,
     val selectedNoteIsArchived: Boolean = false,
     val selectedNoteIsDeleted: Boolean = false,

@@ -50,5 +50,6 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         onPinClick = viewModel::togglePinNote,
         onIsChecklistChange = viewModel::onIsChecklistChanged,
         onChecklistItemToggle = viewModel::toggleChecklistItem,
+        onNoteColorChange = viewModel::onNoteColorChanged,
     )
 }

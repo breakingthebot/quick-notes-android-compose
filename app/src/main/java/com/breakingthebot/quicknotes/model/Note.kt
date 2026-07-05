@@ -29,4 +29,5 @@ data class Note(
     val isDeleted: Boolean = false,
     val isPinned: Boolean = false,
     val isChecklist: Boolean = false,
+    val color: NoteColor = NoteColor.DEFAULT,
 )
