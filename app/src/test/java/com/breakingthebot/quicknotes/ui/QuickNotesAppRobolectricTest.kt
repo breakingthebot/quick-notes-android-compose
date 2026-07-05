@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
@@ -91,6 +92,8 @@ class QuickNotesAppRobolectricTest {
                     onRenameTag = harness::onRenameTag,
                     onDeleteTag = harness::onDeleteTag,
                     onShareClick = harness::shareNote,
+                    onDateFilterOptionChanged = harness::onDateFilterOptionChanged,
+                    onCustomDateRangeChanged = harness::onCustomDateRangeChanged,
                 )
             }
         }
@@ -335,6 +338,7 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("note-card-$title").assert(hasText("#ideas", substring = true))
 
         // Open Tag Manager
+        scrollToNode("manage-tags-button")
         composeRule.onNodeWithTag("manage-tags-button").performClick()
         composeRule.waitForIdle()
 
@@ -343,15 +347,17 @@ class QuickNotesAppRobolectricTest {
         composeRule.waitForIdle()
 
         // Input new tag name
-        composeRule.onNodeWithTag("rename-tag-input").performTextInput("office")
+        composeRule.onNodeWithTag("rename-tag-input").performTextReplacement("office")
         composeRule.onNodeWithTag("rename-save-btn").performClick()
         composeRule.waitForIdle()
 
         // Verify the tag is renamed globally on the card
+        scrollToNode("note-card-$title")
         composeRule.onNodeWithTag("note-card-$title").assert(hasText("#office", substring = true))
         composeRule.onNodeWithTag("note-card-$title").assert(hasText("#work", substring = true).not())
 
         // Open Tag Manager again
+        scrollToNode("manage-tags-button")
         composeRule.onNodeWithTag("manage-tags-button").performClick()
         composeRule.waitForIdle()
 
@@ -364,6 +370,7 @@ class QuickNotesAppRobolectricTest {
         composeRule.waitForIdle()
 
         // Verify the tag ideas is removed globally
+        scrollToNode("note-card-$title")
         composeRule.onNodeWithTag("note-card-$title").assert(hasText("#ideas", substring = true).not())
     }
 
@@ -386,6 +393,7 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("note-card-$title").assertDoesNotExist()
 
         // Switch to archive collection
+        scrollToNode("collection-chip-archived")
         composeRule.onNodeWithTag("collection-chip-archived").performClick()
         composeRule.waitForIdle()
 
@@ -401,6 +409,7 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("note-card-$title").assertDoesNotExist()
 
         // Switch back to active collection
+        scrollToNode("collection-chip-active")
         composeRule.onNodeWithTag("collection-chip-active").performClick()
         composeRule.waitForIdle()
 
@@ -416,6 +425,7 @@ class QuickNotesAppRobolectricTest {
         composeRule.onNodeWithTag("note-card-$title").assertDoesNotExist()
 
         // Switch to trash collection
+        scrollToNode("collection-chip-trash")
         composeRule.onNodeWithTag("collection-chip-trash").performClick()
         composeRule.waitForIdle()
 
@@ -491,6 +501,67 @@ class QuickNotesAppRobolectricTest {
             }
         }
         org.junit.Assert.assertTrue(hasHighlight)
+    }
+
+    /**
+     * Verifies that NoteListFormatter correctly filters notes by date range presets and custom boundaries.
+     */
+    @Test
+    fun noteListFormatter_filtersByDateRange() {
+        val now = System.currentTimeMillis()
+        val todayNote = Note(id = 1, title = "today", body = "body", updatedAt = now)
+        val oldNote = Note(id = 2, title = "old", body = "body", updatedAt = now - (10 * 24 * 60 * 60 * 1000L)) // 10 days ago
+
+        val allNotes = listOf(todayNote, oldNote)
+
+        // Filter ALL
+        val filterAll = NoteListFormatter.formatNotes(
+            notes = allNotes,
+            noteCollection = NoteCollection.ACTIVE,
+            searchQuery = "",
+            selectedTag = null,
+            sortOption = NoteSortOption.NEWEST,
+            dateFilterOption = DateFilterOption.ALL
+        )
+        org.junit.Assert.assertEquals(2, filterAll.size)
+
+        // Filter TODAY
+        val filterToday = NoteListFormatter.formatNotes(
+            notes = allNotes,
+            noteCollection = NoteCollection.ACTIVE,
+            searchQuery = "",
+            selectedTag = null,
+            sortOption = NoteSortOption.NEWEST,
+            dateFilterOption = DateFilterOption.TODAY
+        )
+        org.junit.Assert.assertEquals(1, filterToday.size)
+        org.junit.Assert.assertEquals("today", filterToday.first().title)
+
+        // Filter THIS_WEEK
+        val filterWeek = NoteListFormatter.formatNotes(
+            notes = allNotes,
+            noteCollection = NoteCollection.ACTIVE,
+            searchQuery = "",
+            selectedTag = null,
+            sortOption = NoteSortOption.NEWEST,
+            dateFilterOption = DateFilterOption.THIS_WEEK
+        )
+        org.junit.Assert.assertEquals(1, filterWeek.size)
+        org.junit.Assert.assertEquals("today", filterWeek.first().title)
+
+        // Filter CUSTOM (exactly matching oldNote timestamp range)
+        val filterCustom = NoteListFormatter.formatNotes(
+            notes = allNotes,
+            noteCollection = NoteCollection.ACTIVE,
+            searchQuery = "",
+            selectedTag = null,
+            sortOption = NoteSortOption.NEWEST,
+            dateFilterOption = DateFilterOption.CUSTOM,
+            customStartDate = now - (11 * 24 * 60 * 60 * 1000L),
+            customEndDate = now - (9 * 24 * 60 * 60 * 1000L)
+        )
+        org.junit.Assert.assertEquals(1, filterCustom.size)
+        org.junit.Assert.assertEquals("old", filterCustom.first().title)
     }
 
     /**
@@ -787,15 +858,36 @@ private class QuickNotesScreenHarness {
         lastSharedNoteId = noteId
     }
 
-    private fun syncState() {
+    fun onDateFilterOptionChanged(option: DateFilterOption) {
         state = state.copy(
-            notes = NoteListFormatter.formatNotes(
-                notes = storedNotes,
-                noteCollection = state.noteCollection,
-                searchQuery = state.searchQuery,
-                selectedTag = state.selectedTag,
-                sortOption = state.sortOption,
-            ),
+            dateFilterOption = option,
+            customStartDate = if (option != DateFilterOption.CUSTOM) null else state.customStartDate,
+            customEndDate = if (option != DateFilterOption.CUSTOM) null else state.customEndDate
+        )
+        syncState()
+    }
+
+    fun onCustomDateRangeChanged(start: Long?, end: Long?) {
+        state = state.copy(
+            customStartDate = start,
+            customEndDate = end
+        )
+        syncState()
+    }
+
+    private fun syncState() {
+        val formattedNotes = NoteListFormatter.formatNotes(
+            notes = storedNotes,
+            noteCollection = state.noteCollection,
+            searchQuery = state.searchQuery,
+            selectedTag = state.selectedTag,
+            sortOption = state.sortOption,
+            dateFilterOption = state.dateFilterOption,
+            customStartDate = state.customStartDate,
+            customEndDate = state.customEndDate,
+        )
+        state = state.copy(
+            notes = formattedNotes,
             availableTags = NoteListFormatter.availableTags(
                 notes = storedNotes,
                 noteCollection = state.noteCollection,

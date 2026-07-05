@@ -68,5 +68,7 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
                 context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Note"))
             }
         },
+        onDateFilterOptionChanged = viewModel::onDateFilterOptionChanged,
+        onCustomDateRangeChanged = viewModel::onCustomDateRangeChanged,
     )
 }

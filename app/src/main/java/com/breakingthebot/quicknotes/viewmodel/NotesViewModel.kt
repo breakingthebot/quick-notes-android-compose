@@ -14,6 +14,7 @@ import com.breakingthebot.quicknotes.model.NoteColor
 import com.breakingthebot.quicknotes.services.NotesChangeNotifier
 import com.breakingthebot.quicknotes.ui.NoteCollection
 import com.breakingthebot.quicknotes.ui.NoteSortOption
+import com.breakingthebot.quicknotes.ui.DateFilterOption
 import com.breakingthebot.quicknotes.ui.NotesScreenState
 import com.breakingthebot.quicknotes.util.NoteInputSanitizer
 import com.breakingthebot.quicknotes.util.NoteListFormatter
@@ -58,6 +59,9 @@ class NotesViewModel(
                 searchQuery = editor.searchQuery,
                 selectedTag = editor.selectedTag,
                 sortOption = editor.sortOption,
+                dateFilterOption = editor.dateFilterOption,
+                customStartDate = editor.customStartDate,
+                customEndDate = editor.customEndDate,
             ),
             availableTags = NoteListFormatter.availableTags(
                 notes = notes,
@@ -165,6 +169,32 @@ class NotesViewModel(
         editorState.value = editorState.value.copy(
             noteCollection = noteCollection,
             selectedTag = null,
+        )
+    }
+
+    /**
+     * Updates the date range filter option.
+     *
+     * @param option Selected DateFilterOption.
+     */
+    fun onDateFilterOptionChanged(option: DateFilterOption) {
+        editorState.value = editorState.value.copy(
+            dateFilterOption = option,
+            customStartDate = if (option != DateFilterOption.CUSTOM) null else editorState.value.customStartDate,
+            customEndDate = if (option != DateFilterOption.CUSTOM) null else editorState.value.customEndDate
+        )
+    }
+
+    /**
+     * Updates the custom date range values.
+     *
+     * @param start Start epoch millis, or null.
+     * @param end End epoch millis, or null.
+     */
+    fun onCustomDateRangeChanged(start: Long?, end: Long?) {
+        editorState.value = editorState.value.copy(
+            customStartDate = start,
+            customEndDate = end
         )
     }
 

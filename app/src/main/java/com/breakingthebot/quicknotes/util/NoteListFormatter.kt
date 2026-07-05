@@ -8,6 +8,7 @@ package com.breakingthebot.quicknotes.util
 import com.breakingthebot.quicknotes.model.Note
 import com.breakingthebot.quicknotes.ui.NoteCollection
 import com.breakingthebot.quicknotes.ui.NoteSortOption
+import com.breakingthebot.quicknotes.ui.DateFilterOption
 import java.util.Locale
 
 /**
@@ -30,6 +31,9 @@ object NoteListFormatter {
         searchQuery: String,
         selectedTag: String?,
         sortOption: NoteSortOption,
+        dateFilterOption: DateFilterOption = DateFilterOption.ALL,
+        customStartDate: Long? = null,
+        customEndDate: Long? = null,
     ): List<Note> {
         val normalizedQuery = searchQuery.trim().lowercase(Locale.getDefault())
         val scopedNotes = notes.filter { note ->
@@ -45,10 +49,51 @@ object NoteListFormatter {
             scopedNotes.filter { note -> selectedTag in note.tags }
         }
 
+        val dateFilteredNotes = when (dateFilterOption) {
+            DateFilterOption.ALL -> tagFilteredNotes
+            DateFilterOption.TODAY -> {
+                val calendar = java.util.Calendar.getInstance().apply {
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+                val startOfToday = calendar.timeInMillis
+                tagFilteredNotes.filter { it.updatedAt >= startOfToday }
+            }
+            DateFilterOption.THIS_WEEK -> {
+                val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
+                tagFilteredNotes.filter { it.updatedAt >= sevenDaysAgo }
+            }
+            DateFilterOption.CUSTOM -> {
+                val start = customStartDate
+                val end = customEndDate
+                if (start != null && end != null) {
+                    val calStart = java.util.Calendar.getInstance().apply {
+                        timeInMillis = start
+                        set(java.util.Calendar.HOUR_OF_DAY, 0)
+                        set(java.util.Calendar.MINUTE, 0)
+                        set(java.util.Calendar.SECOND, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                    }
+                    val calEnd = java.util.Calendar.getInstance().apply {
+                        timeInMillis = end
+                        set(java.util.Calendar.HOUR_OF_DAY, 23)
+                        set(java.util.Calendar.MINUTE, 59)
+                        set(java.util.Calendar.SECOND, 59)
+                        set(java.util.Calendar.MILLISECOND, 999)
+                    }
+                    tagFilteredNotes.filter { it.updatedAt in calStart.timeInMillis..calEnd.timeInMillis }
+                } else {
+                    tagFilteredNotes
+                }
+            }
+        }
+
         val filteredNotes = if (normalizedQuery.isBlank()) {
-            tagFilteredNotes
+            dateFilteredNotes
         } else {
-            tagFilteredNotes.filter { note ->
+            dateFilteredNotes.filter { note ->
                 note.title.lowercase(Locale.getDefault()).contains(normalizedQuery) ||
                     note.body.lowercase(Locale.getDefault()).contains(normalizedQuery) ||
                     note.tags.any { tag -> tag.lowercase(Locale.getDefault()).contains(normalizedQuery) }

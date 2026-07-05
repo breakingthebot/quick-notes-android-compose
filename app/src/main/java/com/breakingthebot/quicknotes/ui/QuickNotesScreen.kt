@@ -7,6 +7,8 @@ package com.breakingthebot.quicknotes.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -109,6 +112,8 @@ fun QuickNotesScreen(
     onRenameTag: (String, String) -> Unit,
     onDeleteTag: (String) -> Unit,
     onShareClick: (Int) -> Unit,
+    onDateFilterOptionChanged: (DateFilterOption) -> Unit,
+    onCustomDateRangeChanged: (Long?, Long?) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -141,7 +146,7 @@ fun QuickNotesScreen(
                 .padding(innerPadding)
                 .imePadding()
                 .testTag("notes-list"),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 150.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
@@ -170,6 +175,8 @@ fun QuickNotesScreen(
                     onEmptyTrashClick = onEmptyTrashClick,
                     onRenameTag = onRenameTag,
                     onDeleteTag = onDeleteTag,
+                    onDateFilterOptionChanged = onDateFilterOptionChanged,
+                    onCustomDateRangeChanged = onCustomDateRangeChanged,
                 )
             }
             NotesListContent(
@@ -214,6 +221,7 @@ private fun ScreenSummary(state: NotesScreenState) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteListControls(
     state: NotesScreenState,
@@ -224,7 +232,12 @@ private fun NoteListControls(
     onEmptyTrashClick: () -> Unit,
     onRenameTag: (String, String) -> Unit,
     onDeleteTag: (String) -> Unit,
+    onDateFilterOptionChanged: (DateFilterOption) -> Unit,
+    onCustomDateRangeChanged: (Long?, Long?) -> Unit,
 ) {
+    var showDatePickerRange by remember { mutableStateOf(false) }
+    var showTagManager by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -270,8 +283,6 @@ private fun NoteListControls(
             )
             Spacer(modifier = Modifier.height(12.dp))
             if (state.availableTags.isNotEmpty()) {
-                var showTagManager by remember { mutableStateOf(false) }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -320,6 +331,104 @@ private fun NoteListControls(
                     )
                 }
             }
+            val dateRangeLabel = remember(state.dateFilterOption, state.customStartDate, state.customEndDate) {
+                if (state.dateFilterOption == DateFilterOption.CUSTOM && state.customStartDate != null && state.customEndDate != null) {
+                    val sdf = java.text.SimpleDateFormat("MM/dd/yy", java.util.Locale.getDefault())
+                    " (${sdf.format(java.util.Date(state.customStartDate))} - ${sdf.format(java.util.Date(state.customEndDate))})"
+                } else {
+                    ""
+                }
+            }
+
+            Text(
+                text = "Filter by date$dateRangeLabel",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                DateFilterOption.entries.forEach { option ->
+                    FilterChip(
+                        selected = state.dateFilterOption == option,
+                        onClick = {
+                            if (option == DateFilterOption.CUSTOM) {
+                                showDatePickerRange = true
+                            } else {
+                                onDateFilterOptionChanged(option)
+                            }
+                        },
+                        modifier = Modifier.testTag("date-filter-${option.name.lowercase()}"),
+                        label = { Text(text = option.label) },
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (showDatePickerRange) {
+                val dateRangePickerState = rememberDateRangePickerState()
+                androidx.compose.ui.window.Dialog(
+                    onDismissRequest = { showDatePickerRange = false }
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .testTag("date-range-dialog"),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Select Date Range",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.align(Alignment.Start)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            androidx.compose.material3.DateRangePicker(
+                                state = dateRangePickerState,
+                                modifier = Modifier.weight(1f, fill = false).testTag("date-range-picker")
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.material3.TextButton(
+                                    onClick = { showDatePickerRange = false },
+                                    modifier = Modifier.testTag("date-range-cancel")
+                                ) {
+                                    Text("Cancel")
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Button(
+                                    onClick = {
+                                        val start = dateRangePickerState.selectedStartDateMillis
+                                        val end = dateRangePickerState.selectedEndDateMillis
+                                        if (start != null && end != null) {
+                                            onCustomDateRangeChanged(start, end)
+                                            onDateFilterOptionChanged(DateFilterOption.CUSTOM)
+                                        }
+                                        showDatePickerRange = false
+                                    },
+                                    modifier = Modifier.testTag("date-range-save")
+                                ) {
+                                    Text("OK")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

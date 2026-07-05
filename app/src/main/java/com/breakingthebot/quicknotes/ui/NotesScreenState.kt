@@ -37,4 +37,7 @@ data class NotesScreenState(
     val sortOption: NoteSortOption = NoteSortOption.NEWEST,
     val noteCollection: NoteCollection = NoteCollection.ACTIVE,
     val selectedReminderTime: Long? = null,
+    val dateFilterOption: DateFilterOption = DateFilterOption.ALL,
+    val customStartDate: Long? = null,
+    val customEndDate: Long? = null,
 )

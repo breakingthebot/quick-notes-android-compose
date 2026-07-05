@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0 - 2026-07-05
+- Added Search Filters & Date Range Filtering allowing users to dynamically filter visible notes by update times (All Dates, Today, This Week, Custom Range).
+- Integrated Jetpack Compose Material 3 `DateRangePicker` and `rememberDateRangePickerState` within a custom overlay Dialog for picking custom start/end bounds.
+- Normalized custom start and end date range limits to cover the full starting day (from 00:00:00.000) and ending day (to 23:59:59.999).
+- Added unit tests checking all date range filtering categories inside `NoteListFormatter` under different note timestamps.
+
 ## 1.9.0 - 2026-07-05
 - Added Search Match Text Highlighting, which styles matching search query terms within note preview titles, body markdown texts, and checklist items.
 - Created `SearchHighlighter` utility to parse case-insensitive query matches and append standard `SpanStyle` highlight backdrops onto Compose `AnnotatedString` objects.
