@@ -21,8 +21,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
@@ -68,6 +74,20 @@ fun NoteListItem(
 ) {
     val backgroundColor = NoteColorMapper.getBackgroundColor(note.color)
     val contentColor = NoteColorMapper.getOnBackgroundColor(note.color)
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var itemBitmap by remember(note.imageUri) { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    androidx.compose.runtime.LaunchedEffect(note.imageUri) {
+        val uriStr = note.imageUri
+        if (uriStr != null) {
+            val loaded = com.breakingthebot.quicknotes.util.ImageHelper.decodeBitmapFromUri(context, uriStr)
+            if (loaded != null) {
+                itemBitmap = loaded.asImageBitmap()
+            }
+        } else {
+            itemBitmap = null
+        }
+    }
  
     Card(
         modifier = Modifier
@@ -88,6 +108,17 @@ fun NoteListItem(
             contentColor = contentColor,
         ),
     ) {
+        itemBitmap?.let { bitmap ->
+            androidx.compose.foundation.Image(
+                bitmap = bitmap,
+                contentDescription = "Note attachment image preview",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .testTag("note-card-image-${note.title}"),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
+        }
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

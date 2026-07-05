@@ -75,5 +75,6 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         onDeleteNotebook = viewModel::deleteNotebook,
         onNotebookSelected = viewModel::onNotebookSelected,
         onCurrentNoteNotebookChanged = viewModel::onCurrentNoteNotebookChanged,
+        onCurrentNoteImageChanged = viewModel::onCurrentNoteImageChanged,
     )
 }

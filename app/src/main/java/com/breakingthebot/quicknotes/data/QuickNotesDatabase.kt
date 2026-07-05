@@ -32,7 +32,7 @@ private const val DATABASE_NAME = "quick_notes.db"
 /**
  * Room database that stores notes locally on the device.
  */
-@Database(entities = [Note::class, Notebook::class], version = 9, exportSchema = false)
+@Database(entities = [Note::class, Notebook::class], version = 10, exportSchema = false)
 @TypeConverters(TagListConverter::class, NoteColorConverter::class)
 abstract class QuickNotesDatabase : RoomDatabase() {
     /**
@@ -74,6 +74,7 @@ abstract class QuickNotesDatabase : RoomDatabase() {
                     DatabaseMigrations.migration6To7,
                     DatabaseMigrations.migration7To8,
                     DatabaseMigrations.migration8To9,
+                    DatabaseMigrations.migration9To10,
                 ).build().also { instance = it }
             }
         }

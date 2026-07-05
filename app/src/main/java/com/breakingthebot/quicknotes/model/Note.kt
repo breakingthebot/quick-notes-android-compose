@@ -32,4 +32,5 @@ data class Note(
     val color: NoteColor = NoteColor.DEFAULT,
     val reminderTime: Long? = null,
     val notebookId: Int? = null,
+    val imageUri: String? = null,
 )

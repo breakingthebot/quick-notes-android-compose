@@ -150,4 +150,21 @@ object DatabaseMigrations {
                  )
              }
         }
+
+    /**
+     * Adds the imageUri column while preserving existing notes.
+     */
+    val migration9To10: Migration =
+        object : Migration(9, 10) {
+            /**
+             * Updates the schema from version 9 to version 10.
+             *
+             * @param database Raw SQLite database being migrated.
+             */
+             override fun migrate(database: SupportSQLiteDatabase) {
+                 database.execSQL(
+                     "ALTER TABLE notes ADD COLUMN imageUri TEXT DEFAULT NULL",
+                 )
+             }
+        }
 }

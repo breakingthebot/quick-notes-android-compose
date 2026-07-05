@@ -56,6 +56,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -119,6 +121,7 @@ fun QuickNotesScreen(
     onDeleteNotebook: (Int) -> Unit,
     onNotebookSelected: (Int?) -> Unit,
     onCurrentNoteNotebookChanged: (Int?) -> Unit,
+    onCurrentNoteImageChanged: (String?) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -169,6 +172,7 @@ fun QuickNotesScreen(
                     onNoteColorChange = onNoteColorChange,
                     onReminderTimeChange = onReminderTimeChange,
                     onCurrentNoteNotebookChanged = onCurrentNoteNotebookChanged,
+                    onCurrentNoteImageChanged = onCurrentNoteImageChanged,
                 )
             }
             item {
@@ -594,7 +598,47 @@ private fun NoteEditorCard(
     onNoteColorChange: (NoteColor) -> Unit,
     onReminderTimeChange: (Long?) -> Unit,
     onCurrentNoteNotebookChanged: (Int?) -> Unit,
+    onCurrentNoteImageChanged: (String?) -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var tempCameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success) {
+                tempCameraUri?.let { uri ->
+                    onCurrentNoteImageChanged(uri.toString())
+                }
+            }
+        }
+    )
+
+    val galleryLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            if (uri != null) {
+                val privateUri = com.breakingthebot.quicknotes.util.ImageHelper.copyUriToPrivateStorage(context, uri)
+                if (privateUri != null) {
+                    onCurrentNoteImageChanged(privateUri.toString())
+                }
+            }
+        }
+    )
+
+    var attachedBitmap by remember(state.currentNoteImageUri) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    LaunchedEffect(state.currentNoteImageUri) {
+        val uriStr = state.currentNoteImageUri
+        if (uriStr != null) {
+            val loaded = com.breakingthebot.quicknotes.util.ImageHelper.decodeBitmapFromUri(context, uriStr)
+            if (loaded != null) {
+                attachedBitmap = loaded.asImageBitmap()
+            }
+        } else {
+            attachedBitmap = null
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -620,6 +664,37 @@ private fun NoteEditorCard(
                 modifier = Modifier.padding(top = 4.dp),
             )
             Spacer(modifier = Modifier.height(12.dp))
+
+            attachedBitmap?.let { bitmap ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .testTag("editor-image-preview-container")
+                ) {
+                    androidx.compose.foundation.Image(
+                        bitmap = bitmap,
+                        contentDescription = "Attached image notes preview",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                    androidx.compose.material3.IconButton(
+                        onClick = { onCurrentNoteImageChanged(null) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .background(Color.Black.copy(alpha = 0.6f), shape = androidx.compose.foundation.shape.CircleShape)
+                            .size(36.dp)
+                            .testTag("remove-image-button")
+                    ) {
+                        Text(text = "❌", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             OutlinedTextField(
                 value = state.currentTitle,
                 onValueChange = onTitleChange,
@@ -647,6 +722,41 @@ private fun NoteEditorCard(
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
+
+            // Attach Image Options
+            Text(
+                text = "Attach Image",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val tempUri = com.breakingthebot.quicknotes.util.ImageHelper.createTempImageUri(context)
+                        tempCameraUri = tempUri
+                        cameraLauncher.launch(tempUri)
+                    },
+                    modifier = Modifier.weight(1f).testTag("take-photo-button"),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(text = "📷 Take Photo")
+                }
+                OutlinedButton(
+                    onClick = {
+                        galleryLauncher.launch("image/*")
+                    },
+                    modifier = Modifier.weight(1f).testTag("choose-gallery-button"),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(text = "🖼️ From Gallery")
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
             OutlinedTextField(
                 value = state.currentBody,
                 onValueChange = onBodyChange,

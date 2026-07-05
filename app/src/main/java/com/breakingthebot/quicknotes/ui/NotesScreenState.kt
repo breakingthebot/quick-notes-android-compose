@@ -44,4 +44,5 @@ data class NotesScreenState(
     val notebooks: List<Notebook> = emptyList(),
     val selectedNotebookId: Int? = null,
     val currentNoteNotebookId: Int? = null,
+    val currentNoteImageUri: String? = null,
 )

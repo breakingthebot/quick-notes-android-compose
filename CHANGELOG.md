@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.0 - 2026-07-05
+- Added Camera Picture Taking and Gallery Image selection support for Image Notes.
+- Created `ImageHelper` utility for generating FileProvider camera capture URIs, copying gallery media to secure private app storage, and decoding bitmaps in non-blocking background coroutines.
+- Integrated `FileProvider` component and custom `file_paths.xml` XML asset resource mappings to handle camera storage integrations securely.
+- Built interactive image preview headers inside note card lists and editor dialog structures.
+- Added test-harness fallbacks for image loading to support headless JVM test environments.
+- Implemented `pictureTaking_attachesImageAndRendersPreview` UI integration tests to assert on attachment preview flows in unmerged semantics trees.
+
 ## 2.1.0 - 2026-07-05
 - Added Folder Organization / Notebooks Grouping to categorize and organize notes.
 - Created `Notebook` model and `NotebookDao` for Room database operations, including Room migration `8` to `9`.

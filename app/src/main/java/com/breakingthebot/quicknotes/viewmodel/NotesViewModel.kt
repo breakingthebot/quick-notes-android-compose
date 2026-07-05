@@ -225,6 +225,7 @@ class NotesViewModel(
             currentNoteColor = selectedNote.color,
             selectedReminderTime = selectedNote.reminderTime,
             currentNoteNotebookId = selectedNote.notebookId,
+            currentNoteImageUri = selectedNote.imageUri,
         )
     }
 
@@ -244,6 +245,7 @@ class NotesViewModel(
             currentNoteColor = NoteColor.DEFAULT,
             selectedReminderTime = null,
             currentNoteNotebookId = null,
+            currentNoteImageUri = null,
         )
     }
 
@@ -289,6 +291,7 @@ class NotesViewModel(
             color = editorState.value.currentNoteColor,
             reminderTime = reminderTime,
             notebookId = editorState.value.currentNoteNotebookId,
+            imageUri = editorState.value.currentNoteImageUri,
         )
 
         viewModelScope.launch {
@@ -314,6 +317,15 @@ class NotesViewModel(
             clearEditor()
             notesChangeNotifier.onNotesChanged()
         }
+    }
+
+    /**
+     * Updates the image URI associated with the current note in the editor.
+     *
+     * @param uriString Location of the attached photo.
+     */
+    fun onCurrentNoteImageChanged(uriString: String?) {
+        editorState.value = editorState.value.copy(currentNoteImageUri = uriString)
     }
 
     /**

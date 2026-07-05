@@ -99,6 +99,7 @@ class QuickNotesAppRobolectricTest {
                     onDeleteNotebook = harness::deleteNotebook,
                     onNotebookSelected = harness::onNotebookSelected,
                     onCurrentNoteNotebookChanged = harness::onCurrentNoteNotebookChanged,
+                    onCurrentNoteImageChanged = harness::onCurrentNoteImageChanged,
                 )
             }
         }
@@ -502,6 +503,66 @@ class QuickNotesAppRobolectricTest {
     }
 
     /**
+     * Verifies that attaching an image to a note saves it, renders it on the note card,
+     * loads it back into the editor on selection, and allows removing it.
+     */
+    @Test
+    fun pictureTaking_attachesImageAndRendersPreview() {
+        val title = "image-note"
+        val body = "this is an image note"
+        val mockImageUri = "file:///sdcard/Pictures/mock.jpg"
+
+        // 1. Enter text details
+        scrollToNode("title-input")
+        composeRule.onNodeWithTag("title-input").performTextInput(title)
+        composeRule.onNodeWithTag("body-input").performScrollTo()
+        composeRule.onNodeWithTag("body-input").performTextInput(body)
+
+        // 2. Attach mock image uri manually on the harness
+        harness.onCurrentNoteImageChanged(mockImageUri)
+        composeRule.waitForIdle()
+
+        // Editor preview should exist
+        composeRule.onNodeWithTag("editor-image-preview-container").assertExists()
+
+        // 3. Save note
+        composeRule.onNodeWithTag("save-note-button").performScrollTo()
+        composeRule.onNodeWithTag("save-note-button").performClick()
+        composeRule.waitForIdle()
+
+
+
+        // 4. Verify note card contains image preview component
+        scrollToNoteCard(title)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("note-card-image-$title", useUnmergedTree = true).assertExists()
+
+        // 5. Select note and verify it loads back into the editor
+        composeRule.onNodeWithTag("note-card-$title").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("editor-image-preview-container").performScrollTo()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("editor-image-preview-container").assertExists()
+
+        // 6. Click remove image button
+        composeRule.onNodeWithTag("remove-image-button").performClick()
+        composeRule.waitForIdle()
+
+        // Editor preview should be gone
+        composeRule.onAllNodesWithTag("editor-image-preview-container").assertCountEquals(0)
+
+        // Save changes
+        composeRule.onNodeWithTag("save-note-button").performScrollTo()
+        composeRule.onNodeWithTag("save-note-button").performClick()
+        composeRule.waitForIdle()
+
+        // Card image preview should be gone
+        scrollToNoteCard(title)
+        composeRule.onAllNodes(hasTestTag("note-card-image-$title"), useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    /**
      * Verifies swiping left and right on note items triggers archive, restore, and delete operations.
      */
     @Test
@@ -811,6 +872,7 @@ private class QuickNotesScreenHarness {
             currentNoteColor = note.color,
             selectedReminderTime = note.reminderTime,
             currentNoteNotebookId = note.notebookId,
+            currentNoteImageUri = note.imageUri,
         )
     }
 
@@ -827,6 +889,7 @@ private class QuickNotesScreenHarness {
             currentNoteColor = NoteColor.DEFAULT,
             selectedReminderTime = null,
             currentNoteNotebookId = null,
+            currentNoteImageUri = null,
         )
     }
 
@@ -864,6 +927,7 @@ private class QuickNotesScreenHarness {
             reminderTime = state.selectedReminderTime,
             tags = NoteTagFormatter.parseInput(state.currentTagsInput),
             notebookId = state.currentNoteNotebookId,
+            imageUri = state.currentNoteImageUri,
         )
 
         storedNotes = (storedNotes.filterNot { note -> note.id == noteId } + updatedNote)
@@ -1041,6 +1105,10 @@ private class QuickNotesScreenHarness {
 
     fun onCurrentNoteNotebookChanged(notebookId: Int?) {
         state = state.copy(currentNoteNotebookId = notebookId)
+    }
+
+    fun onCurrentNoteImageChanged(uriString: String?) {
+        state = state.copy(currentNoteImageUri = uriString)
     }
 
     private fun syncState() {
