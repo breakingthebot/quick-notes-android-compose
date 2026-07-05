@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -420,6 +421,48 @@ class NotesViewModel(
             notesChangeNotifier.onNotesChanged()
             clearEditor()
             emitMessage("Trash emptied.")
+        }
+    }
+
+    /**
+     * Renames a tag globally across all notes.
+     *
+     * @param oldTag The existing tag name.
+     * @param newTag The replacement tag name.
+     */
+    fun renameTag(oldTag: String, newTag: String) {
+        val sanitizedNewTag = newTag.trim().lowercase().filter { it.isLetterOrDigit() }
+        if (sanitizedNewTag.isBlank() || oldTag == sanitizedNewTag) return
+
+        viewModelScope.launch {
+            val allNotes = repository.observeNotes().first()
+            allNotes.forEach { note ->
+                if (oldTag in note.tags) {
+                    val updatedTags = note.tags.map { if (it == oldTag) sanitizedNewTag else it }.distinct()
+                    repository.updateNote(note.copy(tags = updatedTags, updatedAt = System.currentTimeMillis()))
+                }
+            }
+            notesChangeNotifier.onNotesChanged()
+            emitMessage("Tag renamed globally.")
+        }
+    }
+
+    /**
+     * Removes a tag globally from all notes.
+     *
+     * @param tag The tag name to delete.
+     */
+    fun deleteTag(tag: String) {
+        viewModelScope.launch {
+            val allNotes = repository.observeNotes().first()
+            allNotes.forEach { note ->
+                if (tag in note.tags) {
+                    val updatedTags = note.tags.filterNot { it == tag }
+                    repository.updateNote(note.copy(tags = updatedTags, updatedAt = System.currentTimeMillis()))
+                }
+            }
+            notesChangeNotifier.onNotesChanged()
+            emitMessage("Tag deleted globally.")
         }
     }
 

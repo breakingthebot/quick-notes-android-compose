@@ -9,8 +9,11 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -82,6 +85,8 @@ class QuickNotesAppRobolectricTest {
                     onChecklistItemToggle = harness::toggleChecklistItem,
                     onNoteColorChange = harness::onNoteColorChanged,
                     onReminderTimeChange = harness::onReminderTimeChanged,
+                    onRenameTag = harness::onRenameTag,
+                    onDeleteTag = harness::onDeleteTag,
                 )
             }
         }
@@ -308,6 +313,54 @@ class QuickNotesAppRobolectricTest {
         // Scroll to and verify badge is rendered on list note card
         scrollToNode("note-card-$title")
         composeRule.onNodeWithText("⏰ Reminder:", substring = true).assertExists()
+    }
+
+    /**
+     * Verifies that renaming and deleting tags globally changes all related notes.
+     */
+    @Test
+    fun tagManager_renamesAndDeleteTagsGlobally() {
+        val title = "tag-note"
+        createNote(title, "details", "work, ideas")
+
+        // Bring note card into viewport
+        scrollToNode("note-card-$title")
+
+        // Verify initial tags exist on note card
+        composeRule.onNodeWithTag("note-card-$title").assert(hasText("#work", substring = true))
+        composeRule.onNodeWithTag("note-card-$title").assert(hasText("#ideas", substring = true))
+
+        // Open Tag Manager
+        composeRule.onNodeWithTag("manage-tags-button").performClick()
+        composeRule.waitForIdle()
+
+        // Click rename button for work
+        composeRule.onNodeWithTag("rename-tag-btn-work").performClick()
+        composeRule.waitForIdle()
+
+        // Input new tag name
+        composeRule.onNodeWithTag("rename-tag-input").performTextInput("office")
+        composeRule.onNodeWithTag("rename-save-btn").performClick()
+        composeRule.waitForIdle()
+
+        // Verify the tag is renamed globally on the card
+        composeRule.onNodeWithTag("note-card-$title").assert(hasText("#office", substring = true))
+        composeRule.onNodeWithTag("note-card-$title").assert(hasText("#work", substring = true).not())
+
+        // Open Tag Manager again
+        composeRule.onNodeWithTag("manage-tags-button").performClick()
+        composeRule.waitForIdle()
+
+        // Click delete button for ideas
+        composeRule.onNodeWithTag("delete-tag-btn-ideas").performClick()
+        composeRule.waitForIdle()
+
+        // Confirm deletion
+        composeRule.onNodeWithTag("delete-tag-save-btn").performClick()
+        composeRule.waitForIdle()
+
+        // Verify the tag ideas is removed globally
+        composeRule.onNodeWithTag("note-card-$title").assert(hasText("#ideas", substring = true).not())
     }
 
     /**
@@ -563,6 +616,37 @@ private class QuickNotesScreenHarness {
     fun emptyTrash(context: Context = androidx.test.core.app.ApplicationProvider.getApplicationContext()) {
         storedNotes = storedNotes.filterNot { note -> note.isDeleted }
         clearEditor()
+        syncState()
+    }
+
+    fun onRenameTag(oldTag: String, newTag: String) {
+        val sanitizedNewTag = newTag.trim().lowercase().filter { it.isLetterOrDigit() }
+        if (sanitizedNewTag.isBlank() || oldTag == sanitizedNewTag) return
+
+        storedNotes = storedNotes.map { note ->
+            if (oldTag in note.tags) {
+                note.copy(
+                    tags = note.tags.map { if (it == oldTag) sanitizedNewTag else it }.distinct(),
+                    updatedAt = System.currentTimeMillis()
+                )
+            } else {
+                note
+            }
+        }
+        syncState()
+    }
+
+    fun onDeleteTag(tag: String) {
+        storedNotes = storedNotes.map { note ->
+            if (tag in note.tags) {
+                note.copy(
+                    tags = note.tags.filterNot { it == tag },
+                    updatedAt = System.currentTimeMillis()
+                )
+            } else {
+                note
+            }
+        }
         syncState()
     }
 

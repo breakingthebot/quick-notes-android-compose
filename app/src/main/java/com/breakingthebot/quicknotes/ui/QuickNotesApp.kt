@@ -55,5 +55,7 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         onChecklistItemToggle = viewModel::toggleChecklistItem,
         onNoteColorChange = viewModel::onNoteColorChanged,
         onReminderTimeChange = viewModel::onReminderTimeChanged,
+        onRenameTag = viewModel::renameTag,
+        onDeleteTag = viewModel::deleteTag,
     )
 }

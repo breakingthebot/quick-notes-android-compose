@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 - 2026-07-05
+- Added Tag Manager (Rename / Delete) providing global tag management features across all saved notes.
+- Implemented `renameTag` globally inside `NotesViewModel` to safely batch update tag names across all notes and filter duplicate tags.
+- Implemented `deleteTag` globally inside `NotesViewModel` to batch remove tags from all notes.
+- Designed a custom material-themed `TagManagerDialog` with sub-dialogs for confirmation prompts and text entry fields.
+- Added visual entry points for tag management in the Browse controls tag filtering header.
+- Added UI integration test `tagManager_renamesAndDeleteTagsGlobally` to verify global tag rename, duplication removal, and global deletion.
+
 ## 1.5.0 - 2026-07-05
 - Added Note Reminders & Notifications allowing date and time scheduling for notes, triggering local system notifications at target times.
 - Created `ReminderReceiver` broadcast receiver to build system notification channels and publish notifications.

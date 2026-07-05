@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -46,6 +47,9 @@ import com.breakingthebot.quicknotes.model.NoteColor
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -99,6 +103,8 @@ fun QuickNotesScreen(
     onChecklistItemToggle: (Int, Int) -> Unit,
     onNoteColorChange: (NoteColor) -> Unit,
     onReminderTimeChange: (Long?) -> Unit,
+    onRenameTag: (String, String) -> Unit,
+    onDeleteTag: (String) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -158,6 +164,8 @@ fun QuickNotesScreen(
                     onSelectedTagChanged = onSelectedTagChanged,
                     onSortOptionChanged = onSortOptionChanged,
                     onEmptyTrashClick = onEmptyTrashClick,
+                    onRenameTag = onRenameTag,
+                    onDeleteTag = onDeleteTag,
                 )
             }
             NotesListContent(
@@ -209,6 +217,8 @@ private fun NoteListControls(
     onSelectedTagChanged: (String?) -> Unit,
     onSortOptionChanged: (NoteSortOption) -> Unit,
     onEmptyTrashClick: () -> Unit,
+    onRenameTag: (String, String) -> Unit,
+    onDeleteTag: (String) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -255,11 +265,25 @@ private fun NoteListControls(
             )
             Spacer(modifier = Modifier.height(12.dp))
             if (state.availableTags.isNotEmpty()) {
-                Text(
-                    text = "Filter by tag",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                var showTagManager by remember { mutableStateOf(false) }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Filter by tag",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    androidx.compose.material3.TextButton(
+                        onClick = { showTagManager = true },
+                        modifier = Modifier.testTag("manage-tags-button")
+                    ) {
+                        Text(text = "Manage tags", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -281,6 +305,15 @@ private fun NoteListControls(
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
+
+                if (showTagManager) {
+                    TagManagerDialog(
+                        availableTags = state.availableTags,
+                        onDismiss = { showTagManager = false },
+                        onRename = onRenameTag,
+                        onDelete = onDeleteTag
+                    )
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -642,5 +675,205 @@ private fun summaryMessage(state: NotesScreenState): String {
             "Search is filtering the active list while your editor stays ready for the next update."
         else ->
             "Keep important notes active, archive older ones, and find everything quickly."
+    }
+}
+
+@Composable
+private fun TagManagerDialog(
+    availableTags: List<String>,
+    onDismiss: () -> Unit,
+    onRename: (String, String) -> Unit,
+    onDelete: (String) -> Unit
+) {
+    var tagToRename by remember { mutableStateOf<String?>(null) }
+    var renameInput by remember { mutableStateOf("") }
+    var tagToDelete by remember { mutableStateOf<String?>(null) }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .testTag("tag-manager-dialog"),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Manage Tags",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    androidx.compose.material3.IconButton(onClick = onDismiss) {
+                        Text(text = "✕", fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp)
+                ) {
+                    items(availableTags.size) { index ->
+                        val tag = availableTags[index]
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .testTag("tag-manager-row-$tag"),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "#$tag",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                androidx.compose.material3.IconButton(
+                                    onClick = {
+                                        tagToRename = tag
+                                        renameInput = tag
+                                    },
+                                    modifier = Modifier.size(36.dp).testTag("rename-tag-btn-$tag")
+                                ) {
+                                    Text(text = "✏️", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                androidx.compose.material3.IconButton(
+                                    onClick = { tagToDelete = tag },
+                                    modifier = Modifier.size(36.dp).testTag("delete-tag-btn-$tag")
+                                ) {
+                                    Text(text = "🗑️", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.material3.TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End).testTag("tag-manager-close")
+                ) {
+                    Text(text = "Close")
+                }
+            }
+        }
+    }
+
+    // Subdialog: Rename input
+    if (tagToRename != null) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { tagToRename = null }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .testTag("rename-dialog"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Rename Tag",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = renameInput,
+                        onValueChange = { renameInput = it },
+                        label = { Text("New Tag Name") },
+                        modifier = Modifier.fillMaxWidth().testTag("rename-tag-input"),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.TextButton(
+                            onClick = { tagToRename = null },
+                            modifier = Modifier.testTag("rename-cancel-btn")
+                        ) {
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                val old = tagToRename
+                                if (old != null && renameInput.isNotBlank()) {
+                                    onRename(old, renameInput)
+                                }
+                                tagToRename = null
+                            },
+                            modifier = Modifier.testTag("rename-save-btn")
+                        ) {
+                            Text("Rename")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Subdialog: Delete confirmation
+    if (tagToDelete != null) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { tagToDelete = null }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .testTag("delete-tag-confirm-dialog"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Delete Tag",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Are you sure you want to delete tag #$tagToDelete globally? It will be removed from all notes.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.TextButton(
+                            onClick = { tagToDelete = null },
+                            modifier = Modifier.testTag("delete-tag-cancel-btn")
+                        ) {
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                val tag = tagToDelete
+                                if (tag != null) {
+                                    onDelete(tag)
+                                }
+                                tagToDelete = null
+                            },
+                            modifier = Modifier.testTag("delete-tag-save-btn")
+                        ) {
+                            Text("Delete")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
