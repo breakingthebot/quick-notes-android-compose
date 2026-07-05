@@ -6,6 +6,7 @@
 package com.breakingthebot.quicknotes.ui
 
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.model.Notebook
 import com.breakingthebot.quicknotes.model.NoteColor
 
 /**
@@ -40,4 +41,7 @@ data class NotesScreenState(
     val dateFilterOption: DateFilterOption = DateFilterOption.ALL,
     val customStartDate: Long? = null,
     val customEndDate: Long? = null,
+    val notebooks: List<Notebook> = emptyList(),
+    val selectedNotebookId: Int? = null,
+    val currentNoteNotebookId: Int? = null,
 )

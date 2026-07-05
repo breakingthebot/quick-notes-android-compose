@@ -77,4 +77,15 @@ class InMemoryNoteDao : NoteDao {
     override suspend fun delete(note: Note) {
         notes.value = notes.value.filterNot { existingNote -> existingNote.id == note.id }
     }
+
+    /**
+     * Dissociates notes from a deleted notebook.
+     *
+     * @param notebookId The id of the deleted notebook.
+     */
+    override suspend fun clearNotebookReferences(notebookId: Int) {
+        notes.value = notes.value.map { note ->
+            if (note.notebookId == notebookId) note.copy(notebookId = null) else note
+        }
+    }
 }

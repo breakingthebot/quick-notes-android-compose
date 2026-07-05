@@ -34,6 +34,7 @@ object NoteListFormatter {
         dateFilterOption: DateFilterOption = DateFilterOption.ALL,
         customStartDate: Long? = null,
         customEndDate: Long? = null,
+        selectedNotebookId: Int? = null,
     ): List<Note> {
         val normalizedQuery = searchQuery.trim().lowercase(Locale.getDefault())
         val scopedNotes = notes.filter { note ->
@@ -100,16 +101,22 @@ object NoteListFormatter {
             }
         }
 
+        val notebookFilteredNotes = if (selectedNotebookId == null) {
+            filteredNotes
+        } else {
+            filteredNotes.filter { note -> note.notebookId == selectedNotebookId }
+        }
+
         return when (sortOption) {
-            NoteSortOption.NEWEST -> filteredNotes.sortedWith(
+            NoteSortOption.NEWEST -> notebookFilteredNotes.sortedWith(
                 compareByDescending<Note> { it.isPinned }
                     .thenByDescending { it.updatedAt }
             )
-            NoteSortOption.OLDEST -> filteredNotes.sortedWith(
+            NoteSortOption.OLDEST -> notebookFilteredNotes.sortedWith(
                 compareByDescending<Note> { it.isPinned }
                     .thenBy { it.updatedAt }
             )
-            NoteSortOption.TITLE -> filteredNotes.sortedWith(
+            NoteSortOption.TITLE -> notebookFilteredNotes.sortedWith(
                 compareByDescending<Note> { it.isPinned }
                     .thenBy { it.title.lowercase(Locale.getDefault()) }
             )

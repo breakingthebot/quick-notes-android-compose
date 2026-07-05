@@ -21,7 +21,8 @@ class NoteRepositoryTest {
     @Test
     fun addNote_insertsNoteIntoDao() = runTest {
         val fakeDao = InMemoryNoteDao()
-        val repository = NoteRepository(fakeDao)
+        val fakeNotebookDao = InMemoryNotebookDao()
+        val repository = NoteRepository(fakeDao, fakeNotebookDao)
         val note = Note(id = 1, title = "Title", body = "Body", updatedAt = 1L)
 
         repository.addNote(note)
@@ -35,7 +36,8 @@ class NoteRepositoryTest {
     @Test
     fun updateNote_updatesStoredNote() = runTest {
         val fakeDao = InMemoryNoteDao()
-        val repository = NoteRepository(fakeDao)
+        val fakeNotebookDao = InMemoryNotebookDao()
+        val repository = NoteRepository(fakeDao, fakeNotebookDao)
         val original = Note(id = 7, title = "Old", body = "Body", updatedAt = 2L)
         val updated = original.copy(title = "New")
 
@@ -51,7 +53,8 @@ class NoteRepositoryTest {
     @Test
     fun deleteNote_removesStoredNote() = runTest {
         val fakeDao = InMemoryNoteDao()
-        val repository = NoteRepository(fakeDao)
+        val fakeNotebookDao = InMemoryNotebookDao()
+        val repository = NoteRepository(fakeDao, fakeNotebookDao)
         val note = Note(id = 9, title = "Keep", body = "Track", updatedAt = 3L)
 
         repository.addNote(note)
@@ -66,7 +69,8 @@ class NoteRepositoryTest {
     @Test
     fun emptyTrash_removesDeletedNotes() = runTest {
         val fakeDao = InMemoryNoteDao()
-        val repository = NoteRepository(fakeDao)
+        val fakeNotebookDao = InMemoryNotebookDao()
+        val repository = NoteRepository(fakeDao, fakeNotebookDao)
         val activeNote = Note(id = 1, title = "Active", body = "Active body", updatedAt = 100L)
         val deletedNote = Note(id = 2, title = "Deleted", body = "Deleted body", updatedAt = 200L, isDeleted = true)
 

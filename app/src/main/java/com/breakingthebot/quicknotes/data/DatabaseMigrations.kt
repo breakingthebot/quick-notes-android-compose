@@ -130,4 +130,24 @@ object DatabaseMigrations {
                  )
              }
         }
+
+    /**
+     * Adds the notebooks table and references from notes.
+     */
+    val migration8To9: Migration =
+        object : Migration(8, 9) {
+            /**
+             * Updates the schema from version 8 to version 9.
+             *
+             * @param database Raw SQLite database being migrated.
+             */
+             override fun migrate(database: SupportSQLiteDatabase) {
+                 database.execSQL(
+                     "CREATE TABLE IF NOT EXISTS notebooks (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, createdAt INTEGER NOT NULL)"
+                 )
+                 database.execSQL(
+                     "ALTER TABLE notes ADD COLUMN notebookId INTEGER"
+                 )
+             }
+        }
 }

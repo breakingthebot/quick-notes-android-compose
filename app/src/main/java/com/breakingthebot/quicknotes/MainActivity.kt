@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val database = QuickNotesDatabase.getInstance(applicationContext)
-        val repository = NoteRepository(database.noteDao())
+        val repository = NoteRepository(database.noteDao(), database.notebookDao())
         val widgetRefreshNotifier = QuickNotesWidgetRefreshNotifier(applicationContext)
 
         setContent {

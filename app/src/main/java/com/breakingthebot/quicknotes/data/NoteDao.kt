@@ -65,4 +65,11 @@ interface NoteDao {
      */
     @Delete
     suspend fun delete(note: Note)
+    /**
+     * Dissociates notes from a deleted notebook.
+     *
+     * @param notebookId The id of the deleted notebook.
+     */
+    @Query("UPDATE notes SET notebookId = NULL WHERE notebookId = :notebookId")
+    suspend fun clearNotebookReferences(notebookId: Int)
 }

@@ -94,6 +94,11 @@ class QuickNotesAppRobolectricTest {
                     onShareClick = harness::shareNote,
                     onDateFilterOptionChanged = harness::onDateFilterOptionChanged,
                     onCustomDateRangeChanged = harness::onCustomDateRangeChanged,
+                    onCreateNotebook = harness::createNotebook,
+                    onRenameNotebook = harness::renameNotebook,
+                    onDeleteNotebook = harness::deleteNotebook,
+                    onNotebookSelected = harness::onNotebookSelected,
+                    onCurrentNoteNotebookChanged = harness::onCurrentNoteNotebookChanged,
                 )
             }
         }
@@ -115,6 +120,8 @@ class QuickNotesAppRobolectricTest {
         scrollToNoteCard(title)
 
         composeRule.onAllNodesWithTag("note-card-$title").assertCountEquals(1)
+
+        scrollToNode("tag-filter-work")
         composeRule.onAllNodesWithTag("tag-filter-work").assertCountEquals(1)
     }
 
@@ -375,6 +382,126 @@ class QuickNotesAppRobolectricTest {
     }
 
     /**
+     * Verifies folder creation, note folder assignment, folder list filtering,
+     * folder renaming, and folder deletion with safe note dissociation.
+     */
+    @Test
+    fun folderOrganization_managesFoldersAndCategorizesNotes() {
+        val folderName = "work"
+        val renamedFolder = "office"
+        val noteInFolder = "folder-note"
+        val noteOutFolder = "other-note"
+
+        // 1. Create a folder
+        scrollToNode("manage-folders-button")
+        composeRule.onNodeWithTag("manage-folders-button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("create-folder-input").performTextInput(folderName)
+        composeRule.onNodeWithTag("create-folder-btn").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("folder-manager-close").performClick()
+        composeRule.waitForIdle()
+
+        // Verify folder filter chip exists
+        scrollToNode("folders-scroll-row")
+        composeRule.onNodeWithTag("folder-filter-$folderName").assertExists()
+
+        // 2. Create note in folder
+        scrollToNode("title-input")
+        composeRule.onNodeWithTag("title-input").performTextInput(noteInFolder)
+        composeRule.onNodeWithTag("body-input").performScrollTo()
+        composeRule.onNodeWithTag("body-input").performTextInput("folder-body")
+        
+        // Select folder from chips row
+        composeRule.onNodeWithTag("editor-folder-row").performScrollTo()
+        composeRule.onNodeWithTag("folder-option-$folderName").performClick()
+        composeRule.waitForIdle()
+
+        // Save
+        composeRule.onNodeWithTag("save-note-button").performScrollTo()
+        composeRule.onNodeWithTag("save-note-button").performClick()
+        composeRule.waitForIdle()
+
+        // Verify card folder badge
+        scrollToNoteCard(noteInFolder)
+        composeRule.onNodeWithTag("note-card-$noteInFolder").assert(hasText("📁 $folderName", substring = true))
+
+        // Create second note without folder
+        scrollToNode("title-input")
+        composeRule.onNodeWithTag("title-input").performTextInput(noteOutFolder)
+        composeRule.onNodeWithTag("body-input").performScrollTo()
+        composeRule.onNodeWithTag("body-input").performTextInput("other-body")
+        composeRule.onNodeWithTag("save-note-button").performScrollTo()
+        composeRule.onNodeWithTag("save-note-button").performClick()
+        composeRule.waitForIdle()
+
+        // 3. Filter by folder
+        scrollToNode("folders-scroll-row")
+        composeRule.onNodeWithTag("folder-filter-$folderName").performClick()
+        composeRule.waitForIdle()
+
+        // noteInFolder should be visible, noteOutFolder hidden
+        scrollToNoteCard(noteInFolder)
+        composeRule.onNodeWithTag("note-card-$noteInFolder").assertExists()
+        composeRule.onAllNodesWithTag("note-card-$noteOutFolder").assertCountEquals(0)
+
+        // Reset filter
+        scrollToNode("folders-scroll-row")
+        composeRule.onNodeWithTag("folder-filter-all").performClick()
+        composeRule.waitForIdle()
+
+        // Both visible
+        scrollToNoteCard(noteInFolder)
+        composeRule.onNodeWithTag("note-card-$noteInFolder").assertExists()
+        scrollToNoteCard(noteOutFolder)
+        composeRule.onNodeWithTag("note-card-$noteOutFolder").assertExists()
+
+        // 4. Rename folder
+        scrollToNode("manage-folders-button")
+        composeRule.onNodeWithTag("manage-folders-button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("rename-folder-btn-$folderName").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("rename-folder-input").performTextReplacement(renamedFolder)
+        composeRule.onNodeWithTag("rename-folder-save-btn").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("folder-manager-close").performClick()
+        composeRule.waitForIdle()
+
+        // Verify folder renamed on filter chip and card
+        scrollToNode("folders-scroll-row")
+        composeRule.onNodeWithTag("folder-filter-$renamedFolder").assertExists()
+        composeRule.onAllNodesWithTag("folder-filter-$folderName").assertCountEquals(0)
+
+        scrollToNoteCard(noteInFolder)
+        composeRule.onNodeWithTag("note-card-$noteInFolder").assert(hasText("📁 $renamedFolder", substring = true))
+
+        // 5. Delete folder
+        scrollToNode("manage-folders-button")
+        composeRule.onNodeWithTag("manage-folders-button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("delete-folder-btn-$renamedFolder").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("delete-folder-save-btn").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("folder-manager-close").performClick()
+        composeRule.waitForIdle()
+
+        // Verify folder chip is gone, but note card is visible and badge is gone
+        scrollToNode("folders-scroll-row")
+        composeRule.onAllNodesWithTag("folder-filter-$renamedFolder").assertCountEquals(0)
+
+        scrollToNoteCard(noteInFolder)
+        composeRule.onNodeWithTag("note-card-$noteInFolder").assert(hasText("📁 $renamedFolder", substring = true).not())
+    }
+
+    /**
      * Verifies swiping left and right on note items triggers archive, restore, and delete operations.
      */
     @Test
@@ -612,6 +739,8 @@ class QuickNotesAppRobolectricTest {
 private class QuickNotesScreenHarness {
     private var storedNotes = emptyList<Note>()
     private var nextId = 1
+    private var storedNotebooks = emptyList<com.breakingthebot.quicknotes.model.Notebook>()
+    private var nextFolderId = 1
 
     var state by mutableStateOf(NotesScreenState())
         private set
@@ -681,6 +810,7 @@ private class QuickNotesScreenHarness {
             currentIsChecklist = note.isChecklist,
             currentNoteColor = note.color,
             selectedReminderTime = note.reminderTime,
+            currentNoteNotebookId = note.notebookId,
         )
     }
 
@@ -696,6 +826,7 @@ private class QuickNotesScreenHarness {
             currentIsChecklist = false,
             currentNoteColor = NoteColor.DEFAULT,
             selectedReminderTime = null,
+            currentNoteNotebookId = null,
         )
     }
 
@@ -732,6 +863,7 @@ private class QuickNotesScreenHarness {
             color = state.currentNoteColor,
             reminderTime = state.selectedReminderTime,
             tags = NoteTagFormatter.parseInput(state.currentTagsInput),
+            notebookId = state.currentNoteNotebookId,
         )
 
         storedNotes = (storedNotes.filterNot { note -> note.id == noteId } + updatedNote)
@@ -875,6 +1007,42 @@ private class QuickNotesScreenHarness {
         syncState()
     }
 
+    fun createNotebook(name: String) {
+        val notebook = com.breakingthebot.quicknotes.model.Notebook(id = nextFolderId++, name = name.trim())
+        storedNotebooks = storedNotebooks + notebook
+        syncState()
+    }
+
+    fun renameNotebook(notebookId: Int, newName: String) {
+        storedNotebooks = storedNotebooks.map {
+            if (it.id == notebookId) it.copy(name = newName.trim()) else it
+        }
+        syncState()
+    }
+
+    fun deleteNotebook(notebookId: Int) {
+        storedNotebooks = storedNotebooks.filterNot { it.id == notebookId }
+        storedNotes = storedNotes.map {
+            if (it.notebookId == notebookId) it.copy(notebookId = null) else it
+        }
+        if (state.selectedNotebookId == notebookId) {
+            state = state.copy(selectedNotebookId = null)
+        }
+        if (state.currentNoteNotebookId == notebookId) {
+            state = state.copy(currentNoteNotebookId = null)
+        }
+        syncState()
+    }
+
+    fun onNotebookSelected(notebookId: Int?) {
+        state = state.copy(selectedNotebookId = notebookId)
+        syncState()
+    }
+
+    fun onCurrentNoteNotebookChanged(notebookId: Int?) {
+        state = state.copy(currentNoteNotebookId = notebookId)
+    }
+
     private fun syncState() {
         val formattedNotes = NoteListFormatter.formatNotes(
             notes = storedNotes,
@@ -885,6 +1053,7 @@ private class QuickNotesScreenHarness {
             dateFilterOption = state.dateFilterOption,
             customStartDate = state.customStartDate,
             customEndDate = state.customEndDate,
+            selectedNotebookId = state.selectedNotebookId,
         )
         state = state.copy(
             notes = formattedNotes,
@@ -892,6 +1061,7 @@ private class QuickNotesScreenHarness {
                 notes = storedNotes,
                 noteCollection = state.noteCollection,
             ),
+            notebooks = storedNotebooks,
         )
     }
 }

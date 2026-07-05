@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.breakingthebot.quicknotes.data.NoteRepository
 import com.breakingthebot.quicknotes.model.Note
+import com.breakingthebot.quicknotes.model.Notebook
 import com.breakingthebot.quicknotes.model.NoteColor
 import com.breakingthebot.quicknotes.services.NotesChangeNotifier
 import com.breakingthebot.quicknotes.ui.NoteCollection
@@ -50,8 +51,9 @@ class NotesViewModel(
      */
     val screenState: StateFlow<NotesScreenState> = combine(
         repository.observeNotes(),
+        repository.observeNotebooks(),
         editorState,
-    ) { notes, editor ->
+    ) { notes, notebooks, editor ->
         editor.copy(
             notes = NoteListFormatter.formatNotes(
                 notes = notes,
@@ -62,11 +64,13 @@ class NotesViewModel(
                 dateFilterOption = editor.dateFilterOption,
                 customStartDate = editor.customStartDate,
                 customEndDate = editor.customEndDate,
+                selectedNotebookId = editor.selectedNotebookId,
             ),
             availableTags = NoteListFormatter.availableTags(
                 notes = notes,
                 noteCollection = editor.noteCollection,
             ),
+            notebooks = notebooks,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -220,6 +224,7 @@ class NotesViewModel(
             currentIsChecklist = selectedNote.isChecklist,
             currentNoteColor = selectedNote.color,
             selectedReminderTime = selectedNote.reminderTime,
+            currentNoteNotebookId = selectedNote.notebookId,
         )
     }
 
@@ -238,6 +243,7 @@ class NotesViewModel(
             currentIsChecklist = false,
             currentNoteColor = NoteColor.DEFAULT,
             selectedReminderTime = null,
+            currentNoteNotebookId = null,
         )
     }
 
@@ -282,6 +288,7 @@ class NotesViewModel(
             isChecklist = isChecklist,
             color = editorState.value.currentNoteColor,
             reminderTime = reminderTime,
+            notebookId = editorState.value.currentNoteNotebookId,
         )
 
         viewModelScope.launch {
@@ -494,6 +501,88 @@ class NotesViewModel(
             notesChangeNotifier.onNotesChanged()
             emitMessage("Tag deleted globally.")
         }
+    }
+
+    /**
+     * Creates a new folder / notebook.
+     *
+     * @param name The notebook name.
+     */
+    fun createNotebook(name: String) {
+        val sanitized = name.trim()
+        if (sanitized.isBlank()) {
+            emitMessage("Folder name cannot be blank.")
+            return
+        }
+        viewModelScope.launch {
+            val notebook = Notebook(name = sanitized)
+            repository.addNotebook(notebook)
+            emitMessage("Folder '$sanitized' created.")
+        }
+    }
+
+    /**
+     * Renames a folder / notebook.
+     *
+     * @param notebookId The notebook identifier.
+     * @param newName The new name.
+     */
+    fun renameNotebook(notebookId: Int, newName: String) {
+        val sanitized = newName.trim()
+        if (sanitized.isBlank()) {
+            emitMessage("Folder name cannot be blank.")
+            return
+        }
+        viewModelScope.launch {
+            val currentNotebooks = screenState.value.notebooks
+            val existing = currentNotebooks.firstOrNull { it.id == notebookId }
+            if (existing != null) {
+                repository.updateNotebook(existing.copy(name = sanitized))
+                emitMessage("Folder renamed to '$sanitized'.")
+            }
+        }
+    }
+
+    /**
+     * Deletes a folder / notebook.
+     *
+     * @param notebookId The notebook identifier.
+     */
+    fun deleteNotebook(notebookId: Int) {
+        viewModelScope.launch {
+            val currentNotebooks = screenState.value.notebooks
+            val existing = currentNotebooks.firstOrNull { it.id == notebookId }
+            if (existing != null) {
+                repository.deleteNotebook(existing)
+                // If the currently selected notebook was deleted, reset filter to All Folders
+                if (editorState.value.selectedNotebookId == notebookId) {
+                    editorState.value = editorState.value.copy(selectedNotebookId = null)
+                }
+                // If the currently edited note has this notebook, reset it to null
+                if (editorState.value.currentNoteNotebookId == notebookId) {
+                    editorState.value = editorState.value.copy(currentNoteNotebookId = null)
+                }
+                emitMessage("Folder '${existing.name}' deleted. Notes were uncategorized.")
+            }
+        }
+    }
+
+    /**
+     * Updates the active folder / notebook list filter.
+     *
+     * @param notebookId The notebook ID to view, or null to view all notes.
+     */
+    fun onNotebookSelected(notebookId: Int?) {
+        editorState.value = editorState.value.copy(selectedNotebookId = notebookId)
+    }
+
+    /**
+     * Updates the folder assigned to the note currently being edited.
+     *
+     * @param notebookId The notebook ID to assign, or null for uncategorized notes.
+     */
+    fun onCurrentNoteNotebookChanged(notebookId: Int?) {
+        editorState.value = editorState.value.copy(currentNoteNotebookId = notebookId)
     }
 
     /**

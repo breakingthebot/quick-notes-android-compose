@@ -70,5 +70,10 @@ fun QuickNotesApp(viewModel: NotesViewModel) {
         },
         onDateFilterOptionChanged = viewModel::onDateFilterOptionChanged,
         onCustomDateRangeChanged = viewModel::onCustomDateRangeChanged,
+        onCreateNotebook = viewModel::createNotebook,
+        onRenameNotebook = viewModel::renameNotebook,
+        onDeleteNotebook = viewModel::deleteNotebook,
+        onNotebookSelected = viewModel::onNotebookSelected,
+        onCurrentNoteNotebookChanged = viewModel::onCurrentNoteNotebookChanged,
     )
 }

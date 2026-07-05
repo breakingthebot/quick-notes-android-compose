@@ -31,4 +31,5 @@ data class Note(
     val isChecklist: Boolean = false,
     val color: NoteColor = NoteColor.DEFAULT,
     val reminderTime: Long? = null,
+    val notebookId: Int? = null,
 )

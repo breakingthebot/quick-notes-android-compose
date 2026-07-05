@@ -114,6 +114,11 @@ fun QuickNotesScreen(
     onShareClick: (Int) -> Unit,
     onDateFilterOptionChanged: (DateFilterOption) -> Unit,
     onCustomDateRangeChanged: (Long?, Long?) -> Unit,
+    onCreateNotebook: (String) -> Unit,
+    onRenameNotebook: (Int, String) -> Unit,
+    onDeleteNotebook: (Int) -> Unit,
+    onNotebookSelected: (Int?) -> Unit,
+    onCurrentNoteNotebookChanged: (Int?) -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -163,18 +168,38 @@ fun QuickNotesScreen(
                     onIsChecklistChange = onIsChecklistChange,
                     onNoteColorChange = onNoteColorChange,
                     onReminderTimeChange = onReminderTimeChange,
+                    onCurrentNoteNotebookChanged = onCurrentNoteNotebookChanged,
                 )
             }
             item {
-                NoteListControls(
+                BrowseNotesCard(
                     state = state,
                     onNoteCollectionChanged = onNoteCollectionChanged,
                     onSearchQueryChanged = onSearchQueryChanged,
+                )
+            }
+            item {
+                FoldersFilterCard(
+                    state = state,
+                    onNotebookSelected = onNotebookSelected,
+                    onCreateNotebook = onCreateNotebook,
+                    onRenameNotebook = onRenameNotebook,
+                    onDeleteNotebook = onDeleteNotebook,
+                )
+            }
+            item {
+                TagsFilterCard(
+                    state = state,
                     onSelectedTagChanged = onSelectedTagChanged,
-                    onSortOptionChanged = onSortOptionChanged,
-                    onEmptyTrashClick = onEmptyTrashClick,
                     onRenameTag = onRenameTag,
                     onDeleteTag = onDeleteTag,
+                )
+            }
+            item {
+                FiltersAndSortCard(
+                    state = state,
+                    onSortOptionChanged = onSortOptionChanged,
+                    onEmptyTrashClick = onEmptyTrashClick,
                     onDateFilterOptionChanged = onDateFilterOptionChanged,
                     onCustomDateRangeChanged = onCustomDateRangeChanged,
                 )
@@ -223,26 +248,14 @@ private fun ScreenSummary(state: NotesScreenState) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NoteListControls(
+private fun BrowseNotesCard(
     state: NotesScreenState,
     onNoteCollectionChanged: (NoteCollection) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
-    onSelectedTagChanged: (String?) -> Unit,
-    onSortOptionChanged: (NoteSortOption) -> Unit,
-    onEmptyTrashClick: () -> Unit,
-    onRenameTag: (String, String) -> Unit,
-    onDeleteTag: (String) -> Unit,
-    onDateFilterOptionChanged: (DateFilterOption) -> Unit,
-    onCustomDateRangeChanged: (Long?, Long?) -> Unit,
 ) {
-    var showDatePickerRange by remember { mutableStateOf(false) }
-    var showTagManager by remember { mutableStateOf(false) }
-
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        modifier = Modifier.fillMaxWidth().testTag("browse-notes-card"),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -281,8 +294,96 @@ private fun NoteListControls(
                     .testTag("note-search-field"),
                 singleLine = true,
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            if (state.availableTags.isNotEmpty()) {
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FoldersFilterCard(
+    state: NotesScreenState,
+    onNotebookSelected: (Int?) -> Unit,
+    onCreateNotebook: (String) -> Unit,
+    onRenameNotebook: (Int, String) -> Unit,
+    onDeleteNotebook: (Int) -> Unit,
+) {
+    var showFolderManager by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("folders-filter-card"),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Folders",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                androidx.compose.material3.TextButton(
+                    onClick = { showFolderManager = true },
+                    modifier = Modifier.testTag("manage-folders-button")
+                ) {
+                    Text(text = "Manage folders", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .testTag("folders-scroll-row"),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = state.selectedNotebookId == null,
+                    onClick = { onNotebookSelected(null) },
+                    modifier = Modifier.testTag("folder-filter-all"),
+                    label = { Text(text = "📁 All Folders") },
+                )
+                state.notebooks.forEach { notebook ->
+                    FilterChip(
+                        selected = state.selectedNotebookId == notebook.id,
+                        onClick = { onNotebookSelected(notebook.id) },
+                        modifier = Modifier.testTag("folder-filter-${notebook.name}"),
+                        label = { Text(text = "📁 ${notebook.name}") },
+                    )
+                }
+            }
+
+            if (showFolderManager) {
+                FolderManagerDialog(
+                    notebooks = state.notebooks,
+                    onDismiss = { showFolderManager = false },
+                    onCreate = onCreateNotebook,
+                    onRename = onRenameNotebook,
+                    onDelete = onDeleteNotebook
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TagsFilterCard(
+    state: NotesScreenState,
+    onSelectedTagChanged: (String?) -> Unit,
+    onRenameTag: (String, String) -> Unit,
+    onDeleteTag: (String) -> Unit,
+) {
+    var showTagManager by remember { mutableStateOf(false) }
+
+    if (state.availableTags.isNotEmpty()) {
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("tags-filter-card"),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -320,7 +421,6 @@ private fun NoteListControls(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
 
                 if (showTagManager) {
                     TagManagerDialog(
@@ -331,6 +431,26 @@ private fun NoteListControls(
                     )
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FiltersAndSortCard(
+    state: NotesScreenState,
+    onSortOptionChanged: (NoteSortOption) -> Unit,
+    onEmptyTrashClick: () -> Unit,
+    onDateFilterOptionChanged: (DateFilterOption) -> Unit,
+    onCustomDateRangeChanged: (Long?, Long?) -> Unit,
+) {
+    var showDatePickerRange by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("filters-and-sort-card"),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             val dateRangeLabel = remember(state.dateFilterOption, state.customStartDate, state.customEndDate) {
                 if (state.dateFilterOption == DateFilterOption.CUSTOM && state.customStartDate != null && state.customEndDate != null) {
                     val sdf = java.text.SimpleDateFormat("MM/dd/yy", java.util.Locale.getDefault())
@@ -473,6 +593,7 @@ private fun NoteEditorCard(
     onIsChecklistChange: (Boolean) -> Unit,
     onNoteColorChange: (NoteColor) -> Unit,
     onReminderTimeChange: (Long?) -> Unit,
+    onCurrentNoteNotebookChanged: (Int?) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -651,6 +772,36 @@ private fun NoteEditorCard(
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
+            // Assign to folder / notebook
+            Text(
+                text = "Assign to folder",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .testTag("editor-folder-row"),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = state.currentNoteNotebookId == null,
+                    onClick = { onCurrentNoteNotebookChanged(null) },
+                    modifier = Modifier.testTag("folder-option-none"),
+                    label = { Text(text = "None") },
+                )
+                state.notebooks.forEach { notebook ->
+                    FilterChip(
+                        selected = state.currentNoteNotebookId == notebook.id,
+                        onClick = { onCurrentNoteNotebookChanged(notebook.id) },
+                        modifier = Modifier.testTag("folder-option-${notebook.name}"),
+                        label = { Text(text = "📁 ${notebook.name}") },
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = state.currentTagsInput,
                 onValueChange = onTagsInputChange,
@@ -754,6 +905,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.NotesListContent(
                 onChecklistItemToggle = { itemIndex -> onChecklistItemToggle(note.id, itemIndex) },
                 onShareClick = { onShareClick(note.id) },
                 searchQuery = state.searchQuery,
+                notebookName = state.notebooks.firstOrNull { it.id == note.notebookId }?.name,
             )
         }
     }
@@ -1058,6 +1210,228 @@ private fun SwipeDismissBackground(dismissState: androidx.compose.material3.Swip
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium
             )
+        }
+    }
+}
+
+@Composable
+private fun FolderManagerDialog(
+    notebooks: List<com.breakingthebot.quicknotes.model.Notebook>,
+    onDismiss: () -> Unit,
+    onCreate: (String) -> Unit,
+    onRename: (Int, String) -> Unit,
+    onDelete: (Int) -> Unit
+) {
+    var folderToRename by remember { mutableStateOf<com.breakingthebot.quicknotes.model.Notebook?>(null) }
+    var folderToDelete by remember { mutableStateOf<com.breakingthebot.quicknotes.model.Notebook?>(null) }
+    var renameInput by remember { mutableStateOf("") }
+    var createInput by remember { mutableStateOf("") }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .testTag("folder-manager-dialog"),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Manage Folders",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Create Folder Form
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = createInput,
+                        onValueChange = { createInput = it },
+                        label = { Text("New Folder Name") },
+                        modifier = Modifier.weight(1f).testTag("create-folder-input"),
+                        singleLine = true
+                    )
+                    Button(
+                        onClick = {
+                            if (createInput.isNotBlank()) {
+                                onCreate(createInput)
+                                createInput = ""
+                            }
+                        },
+                        modifier = Modifier.testTag("create-folder-btn")
+                    ) {
+                        Text("Create")
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Scrollable list of existing folders
+                Text(
+                    text = "Existing Folders",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                        .testTag("folder-manager-list")
+                ) {
+                    items(notebooks.size) { index ->
+                        val notebook = notebooks[index]
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "📁 ${notebook.name}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                androidx.compose.material3.IconButton(
+                                    onClick = {
+                                        folderToRename = notebook
+                                        renameInput = notebook.name
+                                    },
+                                    modifier = Modifier.size(36.dp).testTag("rename-folder-btn-${notebook.name}")
+                                ) {
+                                    Text(text = "✏️", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                androidx.compose.material3.IconButton(
+                                    onClick = { folderToDelete = notebook },
+                                    modifier = Modifier.size(36.dp).testTag("delete-folder-btn-${notebook.name}")
+                                ) {
+                                    Text(text = "🗑️", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.material3.TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End).testTag("folder-manager-close")
+                ) {
+                    Text(text = "Close")
+                }
+            }
+        }
+    }
+
+    // Subdialog: Rename input
+    if (folderToRename != null) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { folderToRename = null }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .testTag("rename-folder-dialog"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Rename Folder",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = renameInput,
+                        onValueChange = { renameInput = it },
+                        label = { Text("New Folder Name") },
+                        modifier = Modifier.fillMaxWidth().testTag("rename-folder-input"),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.TextButton(
+                            onClick = { folderToRename = null },
+                            modifier = Modifier.testTag("rename-folder-cancel-btn")
+                        ) {
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                val old = folderToRename
+                                if (old != null && renameInput.isNotBlank()) {
+                                    onRename(old.id, renameInput)
+                                }
+                                folderToRename = null
+                            },
+                            modifier = Modifier.testTag("rename-folder-save-btn")
+                        ) {
+                            Text("Rename")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Subdialog: Delete confirmation
+    if (folderToDelete != null) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { folderToDelete = null }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .testTag("delete-folder-dialog"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Delete Folder?",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Are you sure you want to delete folder \"${folderToDelete?.name}\"? The notes in it will remain safe and become uncategorized.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.TextButton(
+                            onClick = { folderToDelete = null },
+                            modifier = Modifier.testTag("delete-folder-cancel-btn")
+                        ) {
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                val target = folderToDelete
+                                if (target != null) {
+                                    onDelete(target.id)
+                                }
+                                folderToDelete = null
+                            },
+                            modifier = Modifier.testTag("delete-folder-save-btn")
+                        ) {
+                            Text("Delete")
+                        }
+                    }
+                }
+            }
         }
     }
 }

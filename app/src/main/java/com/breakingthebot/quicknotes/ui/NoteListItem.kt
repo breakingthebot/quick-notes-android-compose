@@ -64,10 +64,11 @@ fun NoteListItem(
     onChecklistItemToggle: (Int) -> Unit,
     onShareClick: () -> Unit,
     searchQuery: String,
+    notebookName: String? = null,
 ) {
     val backgroundColor = NoteColorMapper.getBackgroundColor(note.color)
     val contentColor = NoteColorMapper.getOnBackgroundColor(note.color)
-
+ 
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -171,6 +172,19 @@ fun NoteListItem(
                     Text(
                         text = "⏰ Reminder: $reminderText",
                         style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.9f)
+                    )
+                }
+            }
+            if (notebookName != null) {
+                Row(
+                    modifier = Modifier.padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "📁 $notebookName",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
                         color = contentColor.copy(alpha = 0.9f)
                     )
                 }

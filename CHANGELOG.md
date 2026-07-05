@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.0 - 2026-07-05
+- Added Folder Organization / Notebooks Grouping to categorize and organize notes.
+- Created `Notebook` model and `NotebookDao` for Room database operations, including Room migration `8` to `9`.
+- Integrated safe folder cascading delete; deleting a folder sets `notebookId` to `null` on all its notes rather than losing user notes.
+- Built scrollable `FolderManagerDialog` allowing creation, renaming, and deletion of folders.
+- Implemented folder assignment selector row inside Note Editor utilizing horizontal scrollable chips for seamless single-tap classification.
+- Rendered folder indicator badges on note cards and built a scrollable folders filter row in Note Browser.
+- Added comprehensive UI integration test `folderOrganization_managesFoldersAndCategorizesNotes` verifying end-to-end folder operations and safe dissociation.
+
 ## 2.0.0 - 2026-07-05
 - Added Search Filters & Date Range Filtering allowing users to dynamically filter visible notes by update times (All Dates, Today, This Week, Custom Range).
 - Integrated Jetpack Compose Material 3 `DateRangePicker` and `rememberDateRangePickerState` within a custom overlay Dialog for picking custom start/end bounds.
